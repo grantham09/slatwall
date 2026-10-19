@@ -7,7 +7,7 @@ physical fit still needs a test print.
 from dataclasses import dataclass
 from pathlib import Path
 import argparse
-from build123d import Align, Box, Plane, Polygon, Pos, extrude, export_step, export_stl
+from build123d import Align, Box, Plane, Polygon, Pos, BuildSketch, BuildLine, Polyline, Bezier, make_face, extrude, export_step, export_stl
 
 
 @dataclass(frozen=True)
@@ -26,7 +26,7 @@ class PlateParameters:
     snap_width: float = 16.0
     snap_thickness: float = 1.8
     snap_length: float = 28.0
-    snap_engagement: float = 1.2  # below lower opening edge
+    snap_engagement: float = 1.2  # above lower opening, into the lip above it
     snap_projection: float = 4.0
     release_gap: float = 1.0
     bottom_lip_rise: float = 6.5  # lip above the opening, on the slat above
@@ -51,8 +51,8 @@ class PlateParameters:
             raise ValueError("slot_pitch must exceed slot_height")
         if self.hook_rise + self.clearance >= self.slot_height/2 + self.bottom_lip_rise:
             raise ValueError("upper hook must fit within the internal gap")
-        if self.snap_engagement + self.clearance >= self.top_lip_drop:
-            raise ValueError("snap_engagement must fit behind the top lip")
+        if self.snap_engagement + self.clearance >= self.bottom_lip_rise:
+            raise ValueError("snap_engagement must fit behind the lip above the opening")
         if self.hook_rise <= self.slot_height / 2:
             raise ValueError("hook_rise must reach above the upper opening")
         if self.hook_thickness + 2 * self.clearance >= self.slot_height:
@@ -99,20 +99,31 @@ def make_plate(p: PlateParameters = PlateParameters()):
                      (0, upper+t/2)], p.hook_width)
     # Cut a full window and reconnect a thinner downward cantilever at its root.
     root = lower + p.snap_length
-    bottom = lower - p.slot_height/2 - p.snap_engagement
+    bottom = lower - p.snap_thickness
     window_bottom = bottom - p.release_gap
     window = _box(p.snap_width + 2*p.release_gap, p.plate_thickness+2,
                   root-window_bottom, y=-1, z=window_bottom)
     plate = plate - window
     tongue = _box(p.snap_width, p.snap_thickness,
                   root+1-lower, z=lower)
-    # Horizontal lower ledge catches under lower opening lip. Sloped rear
-    # surface cams the tongue outward while pressing the bottom into place.
-    tooth = _profile([(p.snap_thickness, lower), (0, lower+2),
-                      (-p.snap_projection, bottom), (-back, bottom),
-                      (-back, lower-p.slot_height/2+p.clearance),
-                      (p.snap_thickness, lower-p.slot_height/2+p.clearance)],
-                     p.snap_width)
+    # Upward rounded detent: both curved shoulders cam over the lip.
+    # The crown is behind the metal, with no downward retaining barb.
+    peak = lower + p.slot_height/2 + p.snap_engagement
+    crown_y = -(back + p.snap_projection)/2
+    with BuildSketch(Plane.YZ) as detent:
+        with BuildLine():
+            Polyline((p.snap_thickness, bottom),
+                     (-p.snap_projection, bottom))
+            Bezier((-p.snap_projection, bottom),
+                   (-p.snap_projection, peak),
+                   ((-p.snap_projection+crown_y)/2, peak), (crown_y, peak))
+            Bezier((crown_y, peak), (-back, peak),
+                   (-back, lower), (0, lower))
+            Polyline((0, lower), (p.snap_thickness, lower),
+                     (p.snap_thickness, bottom))
+        make_face()
+    tooth = Pos(-p.snap_width/2, 0, 0) * extrude(
+        detent.sketch, amount=p.snap_width, dir=(1, 0, 0))
     return plate + hook + tongue + tooth
 
 

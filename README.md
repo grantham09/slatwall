@@ -1,7 +1,7 @@
 # Parametric slatwall mounting plate
 
 A build123d plate for combining with other printable models: an upward return
-hook at the upper opening and a flexible downward tongue with a lower snap.
+hook at the upper opening and a flexible tongue carrying an upward rounded lower snap.
 Target wall: **Knoll Dividend**. Target printer/material: **Bambu A1, PLA**.
 Defaults use your approximate wall measurements, with metal thickness set to
 the upper estimate of 1.5 mm. The 36.5 mm measurement is interpreted as vertical
@@ -48,7 +48,7 @@ Measure and adjust:
 | slot_depth | Available depth from wall face into slot | 7 |
 | clearance | Fit allowance behind lip | 0.5 |
 | hook_rise | Upper hook height above opening centre | 6.5 |
-| snap_engagement | Lower catch extension below opening edge | 1.2 |
+| snap_engagement | Lower catch extension above opening edge | 1.2 |
 | snap_projection | Lower catch depth behind wall face | 4 |
 | snap_length / snap_thickness | Flexible tongue length / thickness | 28 / 1.8 |
 
@@ -65,10 +65,12 @@ alone do not guarantee that the tilted upper hook can be inserted.
 ## Installation and printing
 
 Insert the upper hook with the plate tilted outward, lift it behind the upper
-lip, then rotate the bottom toward the wall until the lower catch seats under
-the lower lip. The rear slope is the insertion ramp. To remove, pull the lower
-tongue outward through its relief window to clear the catch, tilt the bottom
-out, then lower the upper hook out of its opening. Leave access to the tongue
+lip, then rotate the bottom toward the wall until the rounded lower catch seats behind the lip above the lower opening.
+Both shoulders of this upward catch are curved, allowing it to cam on and off.
+To remove, gently pull the bottom outward; the tongue must flex enough for the
+rounded crown to pass the lip. If needed, assist the tongue through its relief
+window, then lower the upper hook out of its opening. Actual release force
+depends on the material, print orientation, and wall profile; test it in PLA. Leave access to the tongue
 and space in front of it when adding another model; do not bridge the window.
 
 For your Bambu A1 and PLA, start with a small fit print before attaching a
