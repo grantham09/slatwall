@@ -7,7 +7,7 @@ physical fit still needs a test print.
 from dataclasses import dataclass
 from pathlib import Path
 import argparse
-from build123d import Align, Box, Plane, Polygon, Pos, BuildSketch, BuildLine, Polyline, Bezier, make_face, extrude, export_step, export_stl
+from build123d import Align, Box, Cylinder, Plane, Polygon, Pos, BuildSketch, BuildLine, Polyline, Bezier, make_face, extrude, export_step, export_stl
 
 
 @dataclass(frozen=True)
@@ -29,6 +29,8 @@ class PlateParameters:
     snap_engagement: float = 1.2  # above lower opening, into the lip above it
     snap_projection: float = 4.0
     release_gap: float = 1.0
+    release_tab_length: float = 12.0  # extension below plate bottom (Z=0)
+    release_grip_radius: float = 2.0  # rounded crossbar at tab tip
     bottom_lip_rise: float = 6.5  # lip above the opening, on the slat above
     top_lip_drop: float = 3.5  # lip below the opening, on the slat below
 
@@ -44,6 +46,10 @@ class PlateParameters:
         for name, value in vars(self).items():
             if value <= 0:
                 raise ValueError(f"{name} must be positive")
+        if 2*self.release_grip_radius >= self.release_tab_length:
+            raise ValueError("release grip must fit below the plate")
+        if self.release_grip_radius >= 2*self.snap_thickness:
+            raise ValueError("release grip must stay in front of the wall")
         margin = (self.height - self.slot_pitch) / 2
         if margin <= self.slot_height / 2 + self.snap_engagement:
             raise ValueError("height must leave room below the lower latch")
@@ -100,12 +106,18 @@ def make_plate(p: PlateParameters = PlateParameters()):
     # Cut a full window and reconnect a thinner downward cantilever at its root.
     root = lower + p.snap_length
     bottom = lower - p.snap_thickness
-    window_bottom = bottom - p.release_gap
+    # Open the relief through the plate's bottom edge so the pull tab
+    # cannot fuse to the plate or its bottom rail.
+    window_bottom = -p.release_tab_length - p.release_gap
     window = _box(p.snap_width + 2*p.release_gap, p.plate_thickness+2,
                   root-window_bottom, y=-1, z=window_bottom)
     plate = plate - window
     tongue = _box(p.snap_width, p.snap_thickness,
-                  root+1-lower, z=lower)
+                  root+1+p.release_tab_length, z=-p.release_tab_length)
+    # Round crossbar provides a fingertip purchase, below the accessory.
+    grip = Pos(0, p.snap_thickness+p.release_grip_radius/2,
+               -p.release_tab_length+p.release_grip_radius) * Cylinder(
+                   p.release_grip_radius, p.snap_width, rotation=(0, 90, 0))
     # Upward rounded detent: both curved shoulders cam over the lip.
     # The crown is behind the metal, with no downward retaining barb.
     peak = lower + p.slot_height/2 + p.snap_engagement
@@ -124,7 +136,7 @@ def make_plate(p: PlateParameters = PlateParameters()):
         make_face()
     tooth = Pos(-p.snap_width/2, 0, 0) * extrude(
         detent.sketch, amount=p.snap_width, dir=(1, 0, 0))
-    return plate + hook + tongue + tooth
+    return plate + hook + tongue + tooth + grip
 
 
 def main():

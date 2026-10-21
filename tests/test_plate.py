@@ -18,7 +18,25 @@ class PlateTests(unittest.TestCase):
                 self.assertEqual(len(part.solids()), 1)
                 self.assertGreater(part.volume, 0)
                 self.assertAlmostEqual(part.bounding_box().size.X, p.width)
-                self.assertAlmostEqual(part.bounding_box().size.Z, p.height)
+                self.assertAlmostEqual(part.bounding_box().size.Z, p.height+p.release_tab_length, places=5)
+
+    def test_release_tab_is_connected_and_has_free_side_gaps(self):
+        for length in (8, 12, 18):
+            p = replace(PlateParameters(), release_tab_length=length)
+            part = make_plate(p)
+            self.assertTrue(part.is_valid)
+            self.assertEqual(len(part.solids()), 1)
+            self.assertAlmostEqual(part.bounding_box().min.Z, -length, places=5)
+            # Probe where the former bottom rail would otherwise lock the tab.
+            for sign in (-1, 1):
+                gap = Pos(sign*(p.snap_width/2+p.release_gap/2),
+                          p.plate_thickness/2, 2) * Box(
+                              p.release_gap*.8, p.plate_thickness, 3)
+                overlap = part & gap
+                self.assertLess(overlap.volume if overlap else 0, 1e-6)
+            tab = Pos(0, p.snap_thickness/2, -length/2) * Box(
+                p.snap_width*.8, p.snap_thickness*.8, length*.4)
+            self.assertAlmostEqual((part & tab).volume, tab.volume, places=5)
 
     def test_measured_wall_dimensions(self):
         p = PlateParameters()

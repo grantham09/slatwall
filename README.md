@@ -67,15 +67,18 @@ alone do not guarantee that the tilted upper hook can be inserted.
 Insert the upper hook with the plate tilted outward, lift it behind the upper
 lip, then rotate the bottom toward the wall until the rounded lower catch seats behind the lip above the lower opening.
 Both shoulders of this upward catch are curved, allowing it to cam on and off.
-To remove, gently pull the bottom outward; the tongue must flex enough for the
-rounded crown to pass the lip. If needed, assist the tongue through its relief
-window, then lower the upper hook out of its opening. Actual release force
+To remove, pull the rounded release grip below the plate outward (away from
+the wall). It extends the same flexible tongue that carries the lower catch,
+so pulling it moves that catch outward. Hold the tab out, tilt the bottom
+clear, then lower the upper hook out of its opening. Actual release force
 depends on the material, print orientation, and wall profile; test it in PLA. Leave access to the tongue
-and space in front of it when adding another model; do not bridge the window.
+and space in front of it when adding another model; do not bridge the window
+or cover the release tab. The relief now opens through the bottom edge of
+the plate so the tab can move freely.
 
 For your Bambu A1 and PLA, start with a small fit print before attaching a
 large accessory. Use the Bambu Studio profile matching your actual PLA and
-nozzle. The default tongue is 28 mm long and 1.8 mm thick; these are starting
+nozzle. The root-to-catch distance is 28 mm and tongue thickness is 1.8 mm; these are starting
 values, not a validated PLA flexure. If insertion needs excessive force, stop
 and reduce engagement or increase tongue length rather than forcing the latch.
 Use several wall loops so the thin tongue is mostly continuous walls, and
@@ -99,3 +102,15 @@ python -m pip install ocp-vscode
 Open `view_plate.py` and run it using the viewer. Edit `parameters` there to
 try different dimensions; `slatwall_plate.py` contains the full parametric
 model. The viewer bridge is optional for STEP/STL export and tests.
+
+## Release tab parameters
+
+- `release_tab_length=12.0`: extension below the plate bottom, in mm.
+- `release_grip_radius=2.0`: radius of the rounded finger crossbar at the tip.
+- `release_gap=1.0`: clearance on each side of the flexible tongue.
+
+The plate body stays 80 × 70 mm; with the default tab, overall height is
+82 mm. The crossbar projects toward the user for finger purchase. Pull toward
+positive Y, not downward. Leave the tab and its travel clear when combining
+with another model. Physical release travel, force, and PLA fatigue remain
+to be tested on your wall; CAD validity is not a flexure simulation.
