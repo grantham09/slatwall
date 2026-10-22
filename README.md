@@ -1,6 +1,6 @@
 # Parametric slatwall mounting plate
 
-A build123d plate for combining with other printable models: an upward return
+A build123d plate for combining with other printable models: a downward return
 hook at the upper opening and a flexible tongue carrying an upward rounded lower snap.
 Target wall: **Knoll Dividend**. Target printer/material: **Bambu A1, PLA**.
 Defaults use your approximate wall measurements, with metal thickness set to
@@ -47,7 +47,7 @@ Measure and adjust:
 | lip_thickness | Wall lip thickness front to back | 1.5 |
 | slot_depth | Available depth from wall face into slot | 7 |
 | clearance | Fit allowance behind lip | 0.5 |
-| hook_rise | Upper hook height above opening centre | 6.5 |
+| hook_drop | Upper hook depth below opening centre | 6.5 |
 | snap_engagement | Lower catch extension above opening edge | 1.2 |
 | snap_projection | Lower catch depth behind wall face | 4 |
 | snap_length / snap_thickness | Flexible tongue length / thickness | 28 / 1.8 |
@@ -64,13 +64,13 @@ alone do not guarantee that the tilted upper hook can be inserted.
 
 ## Installation and printing
 
-Insert the upper hook with the plate tilted outward, lift it behind the upper
-lip, then rotate the bottom toward the wall until the rounded lower catch seats behind the lip above the lower opening.
+Insert the upper hook with the plate tilted outward, then lower it behind
+the lip below the upper opening. Rotate the bottom toward the wall until the rounded lower catch seats behind the lip above the lower opening.
 Both shoulders of this upward catch are curved, allowing it to cam on and off.
 To remove, pull the rounded release grip below the plate outward (away from
 the wall). It extends the same flexible tongue that carries the lower catch,
 so pulling it moves that catch outward. Hold the tab out, tilt the bottom
-clear, then lower the upper hook out of its opening. Actual release force
+clear, then lift the upper hook clear of its lip and withdraw it. Actual release force
 depends on the material, print orientation, and wall profile; test it in PLA. Leave access to the tongue
 and space in front of it when adding another model; do not bridge the window
 or cover the release tab. The relief now opens through the bottom edge of
@@ -114,3 +114,6 @@ The plate body stays 80 × 70 mm; with the default tab, overall height is
 positive Y, not downward. Leave the tab and its travel clear when combining
 with another model. Physical release travel, force, and PLA fatigue remain
 to be tested on your wall; CAD validity is not a flexure simulation.
+
+The top hook now points downward; use `hook_drop` (formerly `hook_rise`)
+to set its vertical return. The lower rounded catch still points upward.

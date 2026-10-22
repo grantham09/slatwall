@@ -22,7 +22,7 @@ class PlateParameters:
     clearance: float = 0.5
     hook_width: float = 36.0
     hook_thickness: float = 2.4
-    hook_rise: float = 6.5  # measured from upper opening centre
+    hook_drop: float = 6.5  # downward distance from upper opening centre
     snap_width: float = 16.0
     snap_thickness: float = 1.8
     snap_length: float = 28.0
@@ -55,12 +55,12 @@ class PlateParameters:
             raise ValueError("height must leave room below the lower latch")
         if self.slot_pitch <= self.slot_height:
             raise ValueError("slot_pitch must exceed slot_height")
-        if self.hook_rise + self.clearance >= self.slot_height/2 + self.bottom_lip_rise:
+        if self.hook_drop + self.clearance >= self.slot_height/2 + self.top_lip_drop:
             raise ValueError("upper hook must fit within the internal gap")
         if self.snap_engagement + self.clearance >= self.bottom_lip_rise:
             raise ValueError("snap_engagement must fit behind the lip above the opening")
-        if self.hook_rise <= self.slot_height / 2:
-            raise ValueError("hook_rise must reach above the upper opening")
+        if self.hook_drop <= self.slot_height / 2:
+            raise ValueError("hook_drop must reach below the upper opening")
         if self.hook_thickness + 2 * self.clearance >= self.slot_height:
             raise ValueError("hook_thickness must fit through the opening")
         if max(self.hook_width, self.snap_width + 2*self.release_gap) >= self.width:
@@ -98,11 +98,11 @@ def make_plate(p: PlateParameters = PlateParameters()):
     t = p.hook_thickness
     back = p.lip_thickness + p.clearance
     plate = _box(p.width, p.plate_thickness, p.height)
-    # Upper inverted-L: bridge through opening, return pointing upward.
-    hook = _profile([(0, upper-t/2), (-back-t, upper-t/2),
-                     (-back-t, upper+p.hook_rise),
-                     (-back, upper+p.hook_rise), (-back, upper+t/2),
-                     (0, upper+t/2)], p.hook_width)
+    # Upper downward return catches behind the lip below the upper opening.
+    hook = _profile([(0, upper+t/2), (-back-t, upper+t/2),
+                     (-back-t, upper-p.hook_drop),
+                     (-back, upper-p.hook_drop), (-back, upper-t/2),
+                     (0, upper-t/2)], p.hook_width)
     # Cut a full window and reconnect a thinner downward cantilever at its root.
     root = lower + p.snap_length
     bottom = lower - p.snap_thickness

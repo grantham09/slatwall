@@ -38,6 +38,26 @@ class PlateTests(unittest.TestCase):
                 p.snap_width*.8, p.snap_thickness*.8, length*.4)
             self.assertAlmostEqual((part & tab).volume, tab.volume, places=5)
 
+    def test_top_hook_points_down_and_clears_seated_lip(self):
+        p = PlateParameters()
+        part = make_plate(p)
+        upper = (p.height+p.slot_pitch)/2
+        region = Pos(0, -p.slot_depth, upper-10) * Box(
+            p.hook_width, p.slot_depth-0.01, 20,
+            align=(Align.CENTER, Align.MIN, Align.MIN))
+        hook = part & region
+        bounds = hook.bounding_box()
+        self.assertAlmostEqual(bounds.min.Z, upper-p.hook_drop, places=5)
+        self.assertAlmostEqual(bounds.max.Z, upper+p.hook_thickness/2, places=5)
+        lip = Pos(0, -p.lip_thickness,
+                  upper-p.slot_height/2-p.top_lip_drop) * Box(
+                      p.width, p.lip_thickness, p.top_lip_drop,
+                      align=(Align.CENTER, Align.MIN, Align.MIN))
+        collision = part & lip
+        self.assertLess(collision.volume if collision else 0, 1e-6)
+        with self.assertRaisesRegex(ValueError, 'internal gap'):
+            make_plate(replace(p, hook_drop=8))
+
     def test_measured_wall_dimensions(self):
         p = PlateParameters()
         self.assertAlmostEqual(p.slat_face_height, 36.5)
