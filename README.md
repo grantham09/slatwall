@@ -1,7 +1,7 @@
 # Parametric mounting plate
 
 A build123d plate with a downward top hook, a rounded upward lower catch,
-and an optional release tab. All dimensions describe the part itself, in mm.
+and a release tab. All dimensions describe the part itself, in mm.
 No slot height, depth, pitch, or internal wall profile is assumed.
 
 ## Parameters
@@ -21,8 +21,8 @@ No slot height, depth, pitch, or internal wall profile is assumed.
 | snap_length | 28 | Vertical distance from top of lower arm to tongue root |
 | snap_peak | 1.2 | Rounded crown height above top of lower straight arm |
 | release_gap | 1 | Clearance on each side of tongue |
-| release_tab_length | 0 | Extension below plate; zero disables extension and finger grip |
-| release_grip_radius | 2 | Rounded finger crossbar radius when tab is enabled |
+| release_tab_length | 0 | Extension below plate; zero leaves tab flush, with grip present |
+| release_grip_radius | 2 | Rounded finger crossbar radius |
 
 `hook_spacing` is **not centre-to-centre**. For example, the 36.5 mm gap does
 not include either arm's thickness, the 4 mm downward return, or the 1.2 mm
@@ -71,11 +71,12 @@ do not bridge its relief slots with the accessory.
 
 ## Release and printing
 
-Your latest settings disable the tab. Set `release_tab_length=12` to restore
-it. Pull its rounded crossbar outward (+Y) to flex the lower catch clear,
+With `release_tab_length=0`, the tab ends flush with the plate bottom and
+retains its rounded grip on the front. Increase it to extend the tab below
+the plate (for example, `release_tab_length=12`). Pull its rounded crossbar outward (+Y) to flex the lower catch clear,
 then tilt the bottom away and lift the top hook off. Leave access to the tab
-when adding an accessory. Zero tab length also omits the grip, so it cannot
-accidentally bridge the relief at the plate bottom.
+when adding an accessory. The grip stays within the tongue width, so it does not bridge the side
+relief gaps, including when tab length is zero.
 
 For PLA on your Bambu A1, test the fit and release before adding a large
 accessory. Check layer orientation at the tongue root and keep support scars

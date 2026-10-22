@@ -57,7 +57,7 @@ class PlateTests(unittest.TestCase):
             self.assertLess(overlap.volume if overlap else 0, 1e-6)
 
     def test_release_tab_and_free_side_gaps(self):
-        for length in (0, 8, 12, 18):
+        for length in (0, 2, 8, 12, 18):
             p = replace(PlateParameters(), release_tab_length=length)
             part = make_plate(p)
             self.assertEqual(len(part.solids()), 1)
@@ -68,6 +68,14 @@ class PlateTests(unittest.TestCase):
                               p.release_gap*.8, p.plate_thickness, 3)
                 overlap = part & gap
                 self.assertLess(overlap.volume if overlap else 0, 1e-6)
+            # Probe the grip ahead of the tongue: must exist even at zero.
+            grip_probe = Pos(0, p.snap_thickness+p.release_grip_radius,
+                             -length+p.release_grip_radius) * Box(
+                                 p.snap_width*.5, p.release_grip_radius*.4,
+                                 p.release_grip_radius*.4)
+            self.assertAlmostEqual((part & grip_probe).volume,
+                                   grip_probe.volume, places=5)
+            self.assertTrue(part.is_valid)
             if length:
                 tab = Pos(0, p.snap_thickness/2, -length/2) * Box(
                     p.snap_width*.8, p.snap_thickness*.8, length*.4)
@@ -86,7 +94,7 @@ class PlateTests(unittest.TestCase):
     def test_invalid_geometry_rejected(self):
         for overrides in (dict(hook_spacing=80), dict(snap_length=40),
                           dict(snap_width=80), dict(release_tab_length=-1),
-                          dict(release_tab_length=2), dict(snap_peak=30),
+                          dict(release_grip_radius=4), dict(snap_peak=30),
                           dict(hook_drop=float('nan'))):
             with self.subTest(overrides=overrides), self.assertRaises(ValueError):
                 make_plate(replace(PlateParameters(), **overrides))

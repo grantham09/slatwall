@@ -26,7 +26,7 @@ class PlateParameters:
     snap_length: float = 28.0  # lower arm top to tongue root
     snap_peak: float = 1.2  # above top of lower straight arm
     release_gap: float = 1.0
-    release_tab_length: float = 0.0  # below plate; zero disables tab and grip
+    release_tab_length: float = 0.0  # below plate; zero leaves tab flush with plate bottom
     release_grip_radius: float = 2.0
 
     def validate(self):
@@ -47,11 +47,11 @@ class PlateParameters:
             raise ValueError("snap_length must leave room for its root below the top arm")
         if self.snap_peak >= self.snap_length:
             raise ValueError("snap_peak must stay below the tongue root")
-        if self.release_tab_length:
-            if 2*self.release_grip_radius >= self.release_tab_length:
-                raise ValueError("release grip must fit below the plate")
-            if self.release_grip_radius >= 2*self.snap_thickness:
-                raise ValueError("release grip must stay in front of the plate back")
+        if self.release_grip_radius >= 2*self.snap_thickness:
+            raise ValueError("release grip must stay in front of the plate back")
+        lower = (self.height-self.hook_spacing-self.hook_thickness-self.snap_thickness)/2 + self.snap_thickness
+        if 2*self.release_grip_radius >= lower+self.snap_length+self.release_tab_length:
+            raise ValueError("release grip must stay below the tongue root")
 
 
 def _box(width, depth, height, x=0, y=0, z=0):
@@ -94,12 +94,11 @@ def make_plate(p: PlateParameters = PlateParameters()):
     plate = plate - window
     tongue = _box(p.snap_width, p.snap_thickness,
                   root+1+p.release_tab_length, z=-p.release_tab_length)
-    grip = None
-    if p.release_tab_length:
-        # Crossbar is optional with the tab, and extends toward the user.
-        grip = Pos(0, p.snap_thickness+p.release_grip_radius/2,
-                   -p.release_tab_length+p.release_grip_radius) * Cylinder(
-                       p.release_grip_radius, p.snap_width, rotation=(0, 90, 0))
+    # Always retain the finger grip, even when the tab ends at Z=0.
+    # Its width stays within the tongue so it cannot bridge the side gaps.
+    grip = Pos(0, p.snap_thickness+p.release_grip_radius/2,
+               -p.release_tab_length+p.release_grip_radius) * Cylinder(
+                   p.release_grip_radius, p.snap_width, rotation=(0, 90, 0))
     # Upward rounded detent: both curved shoulders cam over the lip.
     # The crown is behind the metal, with no downward retaining barb.
     peak = lower + p.snap_peak
@@ -120,8 +119,7 @@ def make_plate(p: PlateParameters = PlateParameters()):
         make_face()
     tooth = Pos(-p.snap_width/2, 0, 0) * extrude(
         detent.sketch, amount=p.snap_width, dir=(1, 0, 0))
-    part = plate + hook + tongue + tooth
-    return part + grip if grip is not None else part
+    return plate + hook + tongue + tooth + grip
 
 
 def main():

@@ -17,7 +17,7 @@ parameters = PlateParameters(
     snap_length=28.0,
     snap_peak=1.2,
     release_gap=1.0,
-    release_tab_length=0.0,  # set to 12 to enable the pull tab
+    release_tab_length=0.0,  # flush with plate bottom; grip remains present
     release_grip_radius=2.0,
 )
 plate = make_plate(parameters)
