@@ -1,88 +1,77 @@
 import unittest
-from dataclasses import replace
-from build123d import import_step
-from tempfile import TemporaryDirectory
+from dataclasses import fields, replace
 from pathlib import Path
-from build123d import export_step, Box, Pos, Align
+from tempfile import TemporaryDirectory
+from build123d import Align, Box, Pos, export_step, import_step
 from slatwall_plate import PlateParameters, make_plate
 
 
 class PlateTests(unittest.TestCase):
-    def test_parameter_variants_are_single_valid_solids(self):
-        for p in [PlateParameters(),
-                  replace(PlateParameters(), width=110, height=125, slot_pitch=90),
-                  replace(PlateParameters(), snap_width=22, snap_length=35)]:
-            with self.subTest(p=p):
+    def test_public_parameters(self):
+        self.assertEqual([f.name for f in fields(PlateParameters)], [
+            'width', 'height', 'plate_thickness', 'hook_spacing', 'hook_width',
+            'hook_thickness', 'hook_drop', 'lip_thickness', 'snap_width',
+            'snap_thickness', 'snap_length', 'snap_peak', 'release_gap',
+            'release_tab_length', 'release_grip_radius'])
+
+    def test_variants_are_single_valid_solids(self):
+        for overrides in ({}, dict(width=110, height=125, hook_spacing=90),
+                          dict(snap_width=22, snap_length=32, snap_peak=2),
+                          dict(hook_thickness=3, hook_drop=6, lip_thickness=2),
+                          dict(release_tab_length=12)):
+            p = replace(PlateParameters(), **overrides)
+            with self.subTest(overrides=overrides):
                 part = make_plate(p)
                 self.assertTrue(part.is_valid)
                 self.assertEqual(len(part.solids()), 1)
-                self.assertGreater(part.volume, 0)
-                self.assertAlmostEqual(part.bounding_box().size.X, p.width)
-                self.assertAlmostEqual(part.bounding_box().size.Z, p.height+p.release_tab_length, places=5)
+                self.assertAlmostEqual(part.bounding_box().size.X, p.width, places=5)
+                self.assertAlmostEqual(part.bounding_box().size.Z,
+                                       p.height+p.release_tab_length, places=5)
 
-    def test_release_tab_is_connected_and_has_free_side_gaps(self):
-        for length in (8, 12, 18):
+    def test_direct_hook_dimensions(self):
+        # Inspect the generated geometry; neither return changes the arm gap.
+        for drop, peak in ((4, 1.2), (6, 3), (2, .6)):
+            p = replace(PlateParameters(), hook_drop=drop, snap_peak=peak)
+            part = make_plate(p)
+            depth = p.lip_thickness+p.hook_thickness
+            # The straight arms are centred together inside the plate.
+            pair_bottom = (p.height-p.hook_spacing-p.hook_thickness-p.snap_thickness)/2
+            lower_top = pair_bottom+p.snap_thickness
+            upper_bottom = lower_top+p.hook_spacing
+            split = (lower_top+upper_bottom)/2
+            def rear_region(z, height):
+                return Pos(0, -depth-1, z) * Box(
+                    p.width, depth+0.99, height,
+                    align=(Align.CENTER, Align.MIN, Align.MIN))
+            top = (part & rear_region(split, p.height)).bounding_box()
+            bottom = (part & rear_region(0, split)).bounding_box()
+            self.assertAlmostEqual(top.max.Z-p.hook_thickness -
+                                   (bottom.min.Z+p.snap_thickness), p.hook_spacing, places=5)
+            self.assertAlmostEqual(upper_bottom-top.min.Z, drop, places=5)
+            self.assertAlmostEqual(bottom.max.Z-lower_top, peak, places=5)
+            self.assertAlmostEqual(top.min.Y, -depth, places=5)
+            # Check the clear space behind the plate, under the upper bridge.
+            gap = Pos(0, -p.lip_thickness/2, upper_bottom-drop/2) * Box(
+                p.hook_width*.8, p.lip_thickness*.8, drop*.8)
+            overlap = part & gap
+            self.assertLess(overlap.volume if overlap else 0, 1e-6)
+
+    def test_release_tab_and_free_side_gaps(self):
+        for length in (0, 8, 12, 18):
             p = replace(PlateParameters(), release_tab_length=length)
             part = make_plate(p)
-            self.assertTrue(part.is_valid)
             self.assertEqual(len(part.solids()), 1)
             self.assertAlmostEqual(part.bounding_box().min.Z, -length, places=5)
-            # Probe where the former bottom rail would otherwise lock the tab.
             for sign in (-1, 1):
                 gap = Pos(sign*(p.snap_width/2+p.release_gap/2),
                           p.plate_thickness/2, 2) * Box(
                               p.release_gap*.8, p.plate_thickness, 3)
                 overlap = part & gap
                 self.assertLess(overlap.volume if overlap else 0, 1e-6)
-            tab = Pos(0, p.snap_thickness/2, -length/2) * Box(
-                p.snap_width*.8, p.snap_thickness*.8, length*.4)
-            self.assertAlmostEqual((part & tab).volume, tab.volume, places=5)
-
-    def test_top_hook_points_down_and_clears_seated_lip(self):
-        p = PlateParameters()
-        part = make_plate(p)
-        upper = (p.height+p.slot_pitch)/2
-        region = Pos(0, -p.slot_depth, upper-10) * Box(
-            p.hook_width, p.slot_depth-0.01, 20,
-            align=(Align.CENTER, Align.MIN, Align.MIN))
-        hook = part & region
-        bounds = hook.bounding_box()
-        self.assertAlmostEqual(bounds.min.Z, upper-p.hook_drop, places=5)
-        self.assertAlmostEqual(bounds.max.Z, upper+p.hook_thickness/2, places=5)
-        lip = Pos(0, -p.lip_thickness,
-                  upper-p.slot_height/2-p.top_lip_drop) * Box(
-                      p.width, p.lip_thickness, p.top_lip_drop,
-                      align=(Align.CENTER, Align.MIN, Align.MIN))
-        collision = part & lip
-        self.assertLess(collision.volume if collision else 0, 1e-6)
-        with self.assertRaisesRegex(ValueError, 'internal gap'):
-            make_plate(replace(p, hook_drop=8))
-
-    def test_measured_wall_dimensions(self):
-        p = PlateParameters()
-        self.assertAlmostEqual(p.slat_face_height, 36.5)
-        self.assertAlmostEqual(p.internal_gap, 19.5)
-        self.assertAlmostEqual(p.slot_pitch, 46)
-        self.assertLess(p.lip_thickness + p.clearance + p.hook_thickness, p.slot_depth)
-
-    def test_lower_detent_points_up_and_clears_seated_lip(self):
-        p = PlateParameters()
-        part = make_plate(p)
-        lower = (p.height-p.slot_pitch)/2
-        # Isolate the lower catch behind the wall face.
-        region = Pos(0, -p.slot_depth, lower-10) * Box(
-            p.snap_width, p.slot_depth-0.01, 20,
-            align=(Align.CENTER, Align.MIN, Align.MIN))
-        catch = part & region
-        bounds = catch.bounding_box()
-        self.assertAlmostEqual(bounds.max.Z,
-                               lower+p.slot_height/2+p.snap_engagement, places=4)
-        self.assertAlmostEqual(bounds.min.Z, lower-p.snap_thickness, places=4)
-        lip = Pos(0, -p.lip_thickness, lower+p.slot_height/2) * Box(
-            p.width, p.lip_thickness, p.bottom_lip_rise,
-            align=(Align.CENTER, Align.MIN, Align.MIN))
-        collision = part & lip
-        self.assertLess(collision.volume if collision else 0, 1e-6)
+            if length:
+                tab = Pos(0, p.snap_thickness/2, -length/2) * Box(
+                    p.snap_width*.8, p.snap_thickness*.8, length*.4)
+                self.assertAlmostEqual((part & tab).volume, tab.volume, places=5)
 
     def test_step_round_trip(self):
         part = make_plate()
@@ -94,9 +83,13 @@ class PlateTests(unittest.TestCase):
             self.assertEqual(len(restored.solids()), 1)
             self.assertAlmostEqual(restored.volume, part.volume, places=3)
 
-    def test_impossible_depth_is_rejected(self):
-        with self.assertRaisesRegex(ValueError, 'slot_depth'):
-            make_plate(replace(PlateParameters(), slot_depth=3))
+    def test_invalid_geometry_rejected(self):
+        for overrides in (dict(hook_spacing=80), dict(snap_length=40),
+                          dict(snap_width=80), dict(release_tab_length=-1),
+                          dict(release_tab_length=2), dict(snap_peak=30),
+                          dict(hook_drop=float('nan'))):
+            with self.subTest(overrides=overrides), self.assertRaises(ValueError):
+                make_plate(replace(PlateParameters(), **overrides))
 
 
 if __name__ == '__main__':

@@ -1,16 +1,40 @@
-# Parametric slatwall mounting plate
+# Parametric mounting plate
 
-A build123d plate for combining with other printable models: a downward return
-hook at the upper opening and a flexible tongue carrying an upward rounded lower snap.
-Target wall: **Knoll Dividend**. Target printer/material: **Bambu A1, PLA**.
-Defaults use your approximate wall measurements, with metal thickness set to
-the upper estimate of 1.5 mm. The 36.5 mm measurement is interpreted as vertical
-slat face height, so opening pitch is 36.5 + 9.5 = 46 mm. If that measurement
-means something else, adjust slot_pitch before printing.
-All dimensions are in millimetres. **Defaults are measured estimates, not a
-physically verified fit.** Measure your wall before printing.
+A build123d plate with a downward top hook, a rounded upward lower catch,
+and an optional release tab. All dimensions describe the part itself, in mm.
+No slot height, depth, pitch, or internal wall profile is assumed.
 
-## Run
+## Parameters
+
+| Parameter | Default | Meaning |
+| --- | ---: | --- |
+| width | 80 | Plate width, X |
+| height | 70 | Plate body height, Z; excludes release tab |
+| plate_thickness | 4 | Plate thickness, Y |
+| hook_spacing | 36.5 | Clear vertical gap from top of lower straight arm to underside of upper straight arm; excludes both returns |
+| hook_width | 36 | Upper hook width across X |
+| hook_thickness | 2.4 | Upper arm and return thickness; also sets rounded catch depth behind its lip gap |
+| hook_drop | 4 | Downward return below underside of upper straight arm |
+| lip_thickness | 1.5 | Clear gap behind plate to inside of upper return; also locates lower curve's inner shoulder |
+| snap_width | 16 | Lower catch and tongue width across X |
+| snap_thickness | 1.8 | Lower straight arm and flexible tongue thickness |
+| snap_length | 28 | Vertical distance from top of lower arm to tongue root |
+| snap_peak | 1.2 | Rounded crown height above top of lower straight arm |
+| release_gap | 1 | Clearance on each side of tongue |
+| release_tab_length | 0 | Extension below plate; zero disables extension and finger grip |
+| release_grip_radius | 2 | Rounded finger crossbar radius when tab is enabled |
+
+`hook_spacing` is **not centre-to-centre**. For example, the 36.5 mm gap does
+not include either arm's thickness, the 4 mm downward return, or the 1.2 mm
+upward crown. Changing either return leaves that gap unchanged. The two
+straight arms together are centred vertically on the plate.
+
+`lip_thickness` is the actual gap in the model, with no hidden fit allowance.
+Add any desired printing allowance to this value yourself. The lower catch's
+rear projection is derived as `lip_thickness + hook_thickness`; its rounded
+Bezier shoulders scale with that depth and `snap_peak`.
+
+## Run and export
 
 ```sh
 python -m pip install -r requirements.txt
@@ -18,102 +42,43 @@ python slatwall_plate.py
 python -m unittest discover -s tests -v
 ```
 
-Exports `output/slatwall_plate.step` and `.stl`. STEP preserves CAD geometry;
-STL is for slicing. Open either in your CAD application to inspect the design.
-
-## Customize and combine
-
-```python
-from build123d import export_step
-from slatwall_plate import PlateParameters, make_plate
-
-params = PlateParameters(width=80, height=70, slot_pitch=46.0)
-plate = make_plate(params)
-# combined = plate + accessory  # place accessory against the front face
-export_step(plate, "my_plate.step")
-```
-
-X runs across the wall, Z points upward, and positive Y points away from the
-wall. The wall front is Y=0; the plate occupies Y=0 through plate_thickness.
-The accessory mating face is Y=plate_thickness. The two opening centres are
-vertically centred on the plate and separated by slot_pitch.
-
-Measure and adjust:
-
-| Parameter | Meaning | Example |
-| --- | --- | --- |
-| slot_pitch | Centre-to-centre distance between target openings | 46 |
-| slot_height | Clear vertical opening | 9.5 |
-| lip_thickness | Wall lip thickness front to back | 1.5 |
-| slot_depth | Available depth from wall face into slot | 7 |
-| clearance | Fit allowance behind lip | 0.5 |
-| hook_drop | Upper hook depth below opening centre | 6.5 |
-| snap_engagement | Lower catch extension above opening edge | 1.2 |
-| snap_projection | Lower catch depth behind wall face | 4 |
-| snap_length / snap_thickness | Flexible tongue length / thickness | 28 / 1.8 |
-
-The model assumes two straight openings with room behind both retaining lips.
-The bottom lip rise (6.5 mm) and top lip drop (3.5 mm) are also parameters.
-Together with the 9.5 mm opening they give an internal gap of 19.5 mm.
-These describe the cavity above and below each opening, not wall metal
-thickness. The 7 mm depth is an estimate and needs a physical fit check.
-The upper hook reaches 4.4 mm behind the wall face; the lower catch reaches
-4 mm. The default plate is 80 mm wide by 70 mm high.
-Real slatwall may have a different internal profile. Opening height and depth
-alone do not guarantee that the tilted upper hook can be inserted.
-
-## Installation and printing
-
-Insert the upper hook with the plate tilted outward, then lower it behind
-the lip below the upper opening. Rotate the bottom toward the wall until the rounded lower catch seats behind the lip above the lower opening.
-Both shoulders of this upward catch are curved, allowing it to cam on and off.
-To remove, pull the rounded release grip below the plate outward (away from
-the wall). It extends the same flexible tongue that carries the lower catch,
-so pulling it moves that catch outward. Hold the tab out, tilt the bottom
-clear, then lift the upper hook clear of its lip and withdraw it. Actual release force
-depends on the material, print orientation, and wall profile; test it in PLA. Leave access to the tongue
-and space in front of it when adding another model; do not bridge the window
-or cover the release tab. The relief now opens through the bottom edge of
-the plate so the tab can move freely.
-
-For your Bambu A1 and PLA, start with a small fit print before attaching a
-large accessory. Use the Bambu Studio profile matching your actual PLA and
-nozzle. The root-to-catch distance is 28 mm and tongue thickness is 1.8 mm; these are starting
-values, not a validated PLA flexure. If insertion needs excessive force, stop
-and reduce engagement or increase tongue length rather than forcing the latch.
-Use several wall loops so the thin tongue is mostly continuous walls, and
-inspect the sliced root for continuity. Orient the part so bending stress runs
-along continuous extrusion paths; avoid layer separation across the tongue
-root. Hooks extend behind the plate, so a face-down orientation may require
-supports or a different orientation. Keep support scars off the latch surfaces.
-Tune clearance, snap thickness, length, and engagement to the printer and
-material. PLA can be brittle under repeated flexing. No load rating or physical
-snap-fit validation has been established by the CAD checks.
+Exports `output/slatwall_plate.step` and `.stl`.
 
 ## OCP CAD Viewer
 
-With the OCP CAD Viewer extension installed in VS Code, install its Python
-bridge in your selected interpreter:
+Install the OCP CAD Viewer extension in VS Code and its Python bridge:
 
 ```sh
 python -m pip install ocp-vscode
 ```
 
-Open `view_plate.py` and run it using the viewer. Edit `parameters` there to
-try different dimensions; `slatwall_plate.py` contains the full parametric
-model. The viewer bridge is optional for STEP/STL export and tests.
+Run `view_plate.py`. Its `PlateParameters(...)` call lists all editable
+parameters. The viewer is optional for export and tests.
 
-## Release tab parameters
+## Combine with another model
 
-- `release_tab_length=12.0`: extension below the plate bottom, in mm.
-- `release_grip_radius=2.0`: radius of the rounded finger crossbar at the tip.
-- `release_gap=1.0`: clearance on each side of the flexible tongue.
+```python
+from slatwall_plate import PlateParameters, make_plate
 
-The plate body stays 80 × 70 mm; with the default tab, overall height is
-82 mm. The crossbar projects toward the user for finger purchase. Pull toward
-positive Y, not downward. Leave the tab and its travel clear when combining
-with another model. Physical release travel, force, and PLA fatigue remain
-to be tested on your wall; CAD validity is not a flexure simulation.
+plate = make_plate(PlateParameters(hook_spacing=36.5, snap_peak=1.2))
+# combined = plate + accessory
+```
 
-The top hook now points downward; use `hook_drop` (formerly `hook_rise`)
-to set its vertical return. The lower rounded catch still points upward.
+X runs across the plate, Z points up, and Y points away from its back.
+The plate back is Y=0, front mating face is Y=plate_thickness, and hooks
+project into negative Y. Keep the flexible tongue and its front travel clear;
+do not bridge its relief slots with the accessory.
+
+## Release and printing
+
+Your latest settings disable the tab. Set `release_tab_length=12` to restore
+it. Pull its rounded crossbar outward (+Y) to flex the lower catch clear,
+then tilt the bottom away and lift the top hook off. Leave access to the tab
+when adding an accessory. Zero tab length also omits the grip, so it cannot
+accidentally bridge the relief at the plate bottom.
+
+For PLA on your Bambu A1, test the fit and release before adding a large
+accessory. Check layer orientation at the tongue root and keep support scars
+off the hook surfaces. Reduce `snap_peak` or adjust tongue thickness/length
+if the snap needs excessive force. CAD checks verify solid geometry, not
+release force, fatigue, load capacity, or compatibility with a particular wall.
