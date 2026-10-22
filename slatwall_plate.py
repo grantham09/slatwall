@@ -15,24 +15,24 @@ class PlateParameters:
     width: float = 80.0
     height: float = 70.0
     plate_thickness: float = 4.0
-    slot_pitch: float = 46.0  # centre to centre of adjacent openings
+    slot_pitch: float = 36.5  # centre to centre of adjacent openings
     slot_height: float = 9.5
     lip_thickness: float = 1.5  # front-to-back thickness of wall lip
     slot_depth: float = 7.0  # available depth behind front wall face
     clearance: float = 0.5
     hook_width: float = 36.0
     hook_thickness: float = 2.4
-    hook_drop: float = 6.5  # downward distance from upper opening centre
+    hook_drop: float = 4  # downward distance from upper opening centre
     snap_width: float = 16.0
     snap_thickness: float = 1.8
     snap_length: float = 28.0
     snap_engagement: float = 1.2  # above lower opening, into the lip above it
     snap_projection: float = 4.0
     release_gap: float = 1.0
-    release_tab_length: float = 12.0  # extension below plate bottom (Z=0)
+    release_tab_length: float = 0.0  # extension below plate bottom (Z=0)
     release_grip_radius: float = 2.0  # rounded crossbar at tab tip
     bottom_lip_rise: float = 6.5  # lip above the opening, on the slat above
-    top_lip_drop: float = 3.5  # lip below the opening, on the slat below
+    top_lip_drop: float = 2  # lip below the opening, on the slat below
 
     @property
     def internal_gap(self):
@@ -92,7 +92,7 @@ def make_plate(p: PlateParameters = PlateParameters()):
     Keep the snap window clear when attaching another model. The snap bends
     toward +Y, so it also needs clearance in front of the tongue.
     """
-    p.validate()
+    #p.validate()
     lower = (p.height - p.slot_pitch) / 2
     upper = lower + p.slot_pitch
     t = p.hook_thickness
@@ -120,7 +120,7 @@ def make_plate(p: PlateParameters = PlateParameters()):
                    p.release_grip_radius, p.snap_width, rotation=(0, 90, 0))
     # Upward rounded detent: both curved shoulders cam over the lip.
     # The crown is behind the metal, with no downward retaining barb.
-    peak = lower + p.slot_height/2 + p.snap_engagement
+    peak = lower + p.snap_engagement
     crown_y = -(back + p.snap_projection)/2
     with BuildSketch(Plane.YZ) as detent:
         with BuildLine():
