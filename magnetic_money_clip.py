@@ -6,16 +6,18 @@ Print output/money_clip_print_in_place.stl as oriented, with no supports
 inside the hinge. One jaw lies flat and the other stands upright at 90 degrees;
 the hinge axis is horizontal. Use a brim if needed, keeping it out of hinge gaps.
 The axle is fused to the three-knuckle jaw; the other jaw rotates around it.
+The moving jaw slopes inward by 3 degrees so the smooth tips meet first.
 Gently free the hinge after cooling. Clearances are starting values for PLA+;
 verify with your printer before relying on the clip. Install six 8 x 2 mm
 magnets with opposing poles attracting, keeping adhesive out of the hinge.
 """
 from pathlib import Path
 from build123d import (
-    Align, Box, Compound, Cylinder, Pos, RectangleRounded, Rot,
+    Align, Box, Compound, Cylinder, Plane, Polygon, Pos, RectangleRounded, Rot,
     extrude, export_step, export_stl,
 )
 import argparse
+from math import radians, cos, tan
 
 # ------- User-adjustable parameters (millimetres) -------
 WIDTH = 28.0
@@ -23,8 +25,9 @@ BODY_START_X = 5.3
 TIP_X = 41.2
 CORNER_RADIUS = 3.0
 PLATE_THICKNESS = 2.8
+JAW_ANGLE = 3.0  # Moving jaw converges toward the straight jaw at its tip.
 
-# Zero nominal closed gap: when flipped, flat inner faces meet at Z=PLATE_THICKNESS.
+# The tips meet at closure; the moving jaw has clearance toward its root.
 # The hinge is only a rotational joint: no flexing of printed jaws.
 PIVOT_X = 0.0
 PIVOT_Z = PLATE_THICKNESS
@@ -45,6 +48,12 @@ THREE_KNUCKLES = [(-14.0, -9.10), (-2.70, 2.70), (9.10, 14.0)]
 TWO_KNUCKLES   = [(-8.75, -3.05), (3.05, 8.75)]
 
 
+def moving_body_location():
+    """Incline the moving body about its inner tip; leave hinge axis unchanged."""
+    return (Pos(TIP_X, 0, PLATE_THICKNESS) * Rot(0, -JAW_ANGLE, 0)
+            * Pos(-TIP_X, 0, -PLATE_THICKNESS))
+
+
 def make_jaw(knuckles, *, captive_axle=False):
     """Build one jaw in its modelling orientation with reinforced hinge webs."""
     length = TIP_X - BODY_START_X
@@ -52,6 +61,16 @@ def make_jaw(knuckles, *, captive_axle=False):
         RectangleRounded(length, WIDTH, CORNER_RADIUS),
         amount=PLATE_THICKNESS,
     )
+
+    # Cut pockets normal to the body before inclining the moving jaw.
+    for y in MAGNET_Y:
+        pocket = Pos(MAGNET_X, y, PLATE_THICKNESS - MAGNET_POCKET_DEPTH) * Cylinder(
+            MAGNET_POCKET_D/2, MAGNET_POCKET_DEPTH + 0.20,
+            align=(Align.CENTER, Align.CENTER, Align.MIN),
+        )
+        jaw = jaw - pocket
+    if not captive_axle:
+        jaw = moving_body_location() * jaw
 
     for low, high in knuckles:
         middle = (low + high) / 2
@@ -70,6 +89,20 @@ def make_jaw(knuckles, *, captive_axle=False):
             6.0, segment_width, PLATE_THICKNESS,
             align=(Align.CENTER, Align.CENTER, Align.MIN),
         )
+
+        if not captive_axle:
+            # Follow the inclined body back toward the barrel without a
+            # raised inner ledge that would touch the straight jaw early.
+            a = radians(JAW_ANGLE)
+            def inner_z(x):
+                return PLATE_THICKNESS + tan(a) * (x - TIP_X)
+            vertical_thickness = PLATE_THICKNESS / cos(a)
+            reinforcement = Pos(0, low, 0) * extrude(
+                Plane.XZ * Polygon(
+                    (1, inner_z(1) - vertical_thickness),
+                    (8, inner_z(8) - vertical_thickness),
+                    (8, inner_z(8)), (1, inner_z(1)), align=None),
+                amount=segment_width, dir=(0, 1, 0))
 
         # A flat land on the back of the jaw.
         foot = Pos(0.0, middle, 0) * Box(
@@ -99,22 +132,6 @@ def make_jaw(knuckles, *, captive_axle=False):
     else:
         jaw = jaw - pin_hole
 
-    # Inner face: 8 x 2 mm magnets are set ~0.10 mm below the PLA+ face.
-    for y in MAGNET_Y:
-        pocket = Pos(MAGNET_X, y, PLATE_THICKNESS - MAGNET_POCKET_DEPTH) * Cylinder(
-            MAGNET_POCKET_D/2, MAGNET_POCKET_DEPTH + 0.20,
-            align=(Align.CENTER, Align.CENTER, Align.MIN),
-        )
-        jaw = jaw - pocket
-
-    # Recessed (not raised) grip grooves allow the jaws to close flush.
-    for x in (39.0, 40.0):
-        recess = Pos(x, 0, PLATE_THICKNESS - 0.24) * Box(
-            0.45, 21.0, 0.40,
-            align=(Align.CENTER, Align.CENTER, Align.MIN),
-        )
-        jaw = jaw - recess
-
     return jaw
 
 
@@ -142,6 +159,8 @@ def main():
     parser.add_argument('--output', type=Path, default=Path('output'))
     parser.add_argument('--view', action='store_true',
                         help='Show the exported STEP in VS Code OCP CAD Viewer (requires ocp-vscode)')
+    parser.add_argument('--view-state', choices=('print', 'closed'), default='print',
+                        help='Assembly to display with --view (default: print)')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     layout = make_print_layout()
@@ -158,8 +177,10 @@ def main():
             parser.exit(1, 'Exports saved. Viewing requires ocp-vscode: '
                         'python -m pip install ocp-vscode\n')
         from build123d import import_step
-        exported = import_step(args.output / 'money_clip_print_in_place.step')
-        show(exported, names=['Money clip — exported print layout'])
+        filename = ('money_clip_closed.step' if args.view_state == 'closed'
+                    else 'money_clip_print_in_place.step')
+        exported = import_step(args.output / filename)
+        show(exported, names=[f'Money clip — {args.view_state}'])
 
 
 if __name__ == '__main__':

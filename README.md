@@ -113,3 +113,14 @@ filling hinge clearances. Install six 8 x 2 mm magnets (three per jaw) with
 attracting poles and keep glue out of the hinge. Geometry tests
 check separate valid solids and collision-free sampled rotation, not printed
 fit or hinge strength.
+
+The straight jaw and the moving jaw now have smooth tips with no recessed
+grip grooves. The moving jaw slopes inward by 3 degrees: its tip contacts
+the straight jaw first, leaving about 1.9 mm of clearance near the body root.
+Its three magnet pockets follow the inclined face; magnets on the opposing
+jaws are therefore slightly angled when closed. This geometry has not been
+measured for holding force. To inspect the closed profile in the viewer:
+
+```sh
+python magnetic_money_clip.py --view --view-state closed
+```

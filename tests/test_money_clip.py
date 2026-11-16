@@ -4,6 +4,7 @@ from magnetic_money_clip import (
     make_clip, make_jaw, make_print_layout, RADIAL_CLEARANCE,
     PLATE_THICKNESS, TIP_X, THREE_KNUCKLES, TWO_KNUCKLES,
     MAGNET_X, MAGNET_Y, MAGNET_POCKET_D, MAGNET_POCKET_DEPTH,
+    moving_body_location,
 )
 
 
@@ -29,9 +30,8 @@ class MoneyClipTests(unittest.TestCase):
             self.assertAlmostEqual(jaw.bounding_box().min.Z, 0, places=5)
         flat, upright = layout.solids()
         self.assertAlmostEqual(flat.bounding_box().size.Z, 2*PLATE_THICKNESS, places=5)
-        self.assertAlmostEqual(upright.bounding_box().size.X, 2*PLATE_THICKNESS, places=5)
-        self.assertAlmostEqual(upright.bounding_box().max.Z,
-                               TIP_X + PLATE_THICKNESS, places=5)
+        self.assertGreater(upright.bounding_box().size.X, 2*PLATE_THICKNESS)
+        self.assertGreater(upright.bounding_box().max.Z, TIP_X)
         # Both jaws need actual flat bed contact, not a tangent cylinder edge.
         bed_slice = Pos(0, 0, 0) * Box(100, 100, .01,
                             align=(Align.CENTER, Align.CENTER, Align.MIN))
@@ -42,14 +42,37 @@ class MoneyClipTests(unittest.TestCase):
         self.assertEqual(len(MAGNET_Y), 3)
         self.assertAlmostEqual(PLATE_THICKNESS - MAGNET_POCKET_DEPTH, .7)
         for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):
-            jaw = make_jaw(knuckles)
+            jaw = make_jaw(knuckles, captive_axle=knuckles == THREE_KNUCKLES)
             for y in MAGNET_Y:
                 probe = Pos(MAGNET_X, y, PLATE_THICKNESS - 1) * Cylinder(
                     MAGNET_POCKET_D/2 - .1, .8,
                     align=(Align.CENTER, Align.CENTER, Align.MIN))
+                if knuckles == TWO_KNUCKLES:
+                    probe = moving_body_location() * probe
                 overlap = jaw & probe
                 self.assertLess(overlap.volume if overlap else 0, 1e-6)
                 floor = Pos(MAGNET_X, y, .1) * Cylinder(
                     MAGNET_POCKET_D/2 - .1, .4,
                     align=(Align.CENTER, Align.CENTER, Align.MIN))
+                if knuckles == TWO_KNUCKLES:
+                    floor = moving_body_location() * floor
                 self.assertAlmostEqual((jaw & floor).volume, floor.volume, places=5)
+
+    def test_smooth_tips_and_inward_jaw(self):
+        for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):
+            jaw = make_jaw(knuckles, captive_axle=knuckles == THREE_KNUCKLES)
+            for x in (39, 40):
+                probe = Pos(x, 0, PLATE_THICKNESS - .2) * Box(.3, 10, .1)
+                if knuckles == TWO_KNUCKLES:
+                    probe = moving_body_location() * probe
+                self.assertAlmostEqual((jaw & probe).volume, probe.volume, places=5)
+        fixed, moving = make_clip(0)
+        self.assertAlmostEqual(fixed.distance_to(moving), 0, places=5)
+        root_gap = Pos(10, 0, PLATE_THICKNESS + .4) * Box(.4, 4, .4)
+        overlap = moving & root_gap
+        self.assertLess(overlap.volume if overlap else 0, 1e-6)
+        tip_contact = Pos(40, 0, PLATE_THICKNESS + .3) * Box(.4, 4, .2)
+        self.assertAlmostEqual((moving & tip_contact).volume, tip_contact.volume, places=5)
+        # Closing past tip contact must be stopped by the jaw, not the hinge.
+        fixed, moving = make_clip(-1)
+        self.assertGreater((fixed & moving).volume, .1)
