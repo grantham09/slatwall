@@ -83,3 +83,24 @@ accessory. Check layer orientation at the tongue root and keep support scars
 off the hook surfaces. Reduce `snap_peak` or adjust tongue thickness/length
 if the snap needs excessive force. CAD checks verify solid geometry, not
 release force, fatigue, load capacity, or compatibility with a particular wall.
+
+## Print-in-place magnetic money clip
+
+```sh
+python magnetic_money_clip.py
+```
+
+Exports `output/money_clip_print_in_place.stl` and `.step`, plus a closed
+assembly STEP for inspection. Print the combined STL **as oriented**, with
+both jaws fully open on their side edges and the hinge axis vertical. Keep
+supports and brim material out of the hinge gaps. A brim on the jaw edges
+can help adhesion. The printed 2.4 mm axle is integral to one jaw; the other
+jaw is captive between its knuckles. No filament pin or hinge assembly is needed.
+
+Default clearance is 0.30 mm radially and 0.35 mm between knuckle ends.
+Use these as starting values for a calibrated A1 with PLA+; free the hinge
+gently after cooling. Small overhangs at knuckle ends and the sideways magnet
+pockets still need slicer inspection and a physical trial. Install four 8 x 2 mm
+magnets with attracting poles and keep glue out of the hinge. Geometry tests
+check separate valid solids and collision-free sampled rotation, not printed
+fit or hinge strength.

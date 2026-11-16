@@ -1,33 +1,20 @@
-"""Hinged magnetic money clip v2 for a Bambu A1 (PLA+).
+"""Magnetic money clip with a captive print-in-place hinge (millimetres).
 
-This is a *rigid* two-part clip. No PLA+ spring or snap-fit is required.
-The jaws close face-to-face when empty and open by rotating on a filament pin.
-
-Requires: pip install build123d
-Run: python magnetic_money_clip_build123d_v2.py
-
-Both exported STLs are print-oriented: flat bottom at z=0, magnet pockets UP.
-Print the two jaws separately, then flip the two-knuckle jaw to assemble.
-
-Hardware:
-  - 4 neodymium disc magnets, 8 mm diameter x 2 mm thick
-    (two in each jaw; opposing magnets must ATTRACT)
-  - 1.75 mm PLA+ filament, straightened, for a ~29 mm hinge pin
-  - A tiny amount of cyanoacrylate or epoxy for magnets
-
-The magnet pockets are blind and intentionally slightly oversize for glue.
-Do not glue the hinge barrels or get glue into the pin holes.
-
-Important: Geometric model validated with matching OCCT CAD solids, but this
-build123d file wasn't run here because build123d was not installed in the
-runtime. On-printer fit / magnet force remain to be tested.
+Run: .venv/bin/python magnetic_money_clip.py
+Print output/money_clip_print_in_place.stl as oriented, with no supports
+inside the hinge. Both jaws are fully open, standing on their side edges;
+the hinge axis is vertical. Use a brim if needed, keeping it out of hinge gaps.
+The axle is fused to the three-knuckle jaw; the other jaw rotates around it.
+Gently free the hinge after cooling. Clearances are starting values for PLA+;
+verify with your printer before relying on the clip. Install four 8 x 2 mm
+magnets with opposing poles attracting, keeping adhesive out of the hinge.
 """
 from pathlib import Path
 from build123d import (
     Align, Box, Compound, Cylinder, Pos, RectangleRounded, Rot,
     extrude, export_step, export_stl,
 )
-from ocp_vscode import show
+import argparse
 
 # ------- User-adjustable parameters (millimetres) -------
 WIDTH = 28.0
@@ -41,7 +28,9 @@ PLATE_THICKNESS = 3.5
 PIVOT_X = 0.0
 PIVOT_Z = PLATE_THICKNESS
 KNUCKLE_RADIUS = 3.5      # 7.0 mm outside diameter, 2.5 mm wall at pin
-PIN_HOLE_D = 2.05         # Clearance hole for ~1.75 mm filament
+AXLE_D = 2.4
+RADIAL_CLEARANCE = 0.30
+PIN_HOLE_D = AXLE_D + 2 * RADIAL_CLEARANCE
 
 MAGNET_D = 8.0
 MAGNET_THICKNESS = 2.0
@@ -51,12 +40,12 @@ MAGNET_X = 34.0
 MAGNET_Y = (-7.0, 7.0)
 
 # 0.35 mm clearance between adjacent knuckle end faces.
-THREE_KNUCKLES = [(-13.75, -9.10), (-2.70, 2.70), (9.10, 13.75)]
+THREE_KNUCKLES = [(-14.0, -9.10), (-2.70, 2.70), (9.10, 14.0)]
 TWO_KNUCKLES   = [(-8.75, -3.05), (3.05, 8.75)]
 
 
-def make_jaw(knuckles):
-    """A pocket-up, support-free print with reinforced hinge webs."""
+def make_jaw(knuckles, *, captive_axle=False):
+    """Build one jaw in its modelling orientation with reinforced hinge webs."""
     length = TIP_X - BODY_START_X
     jaw = Pos((BODY_START_X + TIP_X)/2, 0, 0) * extrude(
         RectangleRounded(length, WIDTH, CORNER_RADIUS),
@@ -67,7 +56,7 @@ def make_jaw(knuckles):
         middle = (low + high) / 2
         segment_width = high - low
 
-        # The barrel is 7 mm OD; 2.05 mm bore gives substantial PLA+ walls.
+        # The barrel surrounds either the integral axle or its clearance bore.
         barrel = (
             Pos(PIVOT_X, middle, PIVOT_Z) * Rot(90, 0, 0)
             * Cylinder(KNUCKLE_RADIUS, segment_width,
@@ -86,14 +75,20 @@ def make_jaw(knuckles):
             6.2, segment_width, 0.85,
             align=(Align.CENTER, Align.CENTER, Align.MIN),
         )
-        jaw = jaw + barrel + reinforcement + foot
+        jaw = jaw.fuse(barrel, reinforcement, foot)
 
     pin_hole = (
         Pos(PIVOT_X, 0, PIVOT_Z) * Rot(90, 0, 0)
         * Cylinder(PIN_HOLE_D/2, WIDTH + 2,
                    align=(Align.CENTER, Align.CENTER, Align.CENTER))
     )
-    jaw = jaw - pin_hole
+    if captive_axle:
+        axle = (Pos(PIVOT_X, 0, PIVOT_Z) * Rot(90, 0, 0)
+                * Cylinder(AXLE_D/2, WIDTH,
+                           align=(Align.CENTER, Align.CENTER, Align.CENTER)))
+        jaw = jaw + axle
+    else:
+        jaw = jaw - pin_hole
 
     # Inner face: 8 x 2 mm magnets are set ~0.10 mm below the PLA+ face.
     for y in MAGNET_Y:
@@ -114,32 +109,39 @@ def make_jaw(knuckles):
     return jaw
 
 
-def main():
-    out = Path(__file__).resolve().parent
-    lower = make_jaw(THREE_KNUCKLES)
+def make_clip(open_angle=180.0):
+    """Return the two independent jaws; 0 degrees is closed.
+
+    The lower jaw includes its axle. Rotate the upper about Y at the pivot,
+    preserving the bore alignment. 180 degrees is the printing position.
+    """
+    lower = make_jaw(THREE_KNUCKLES, captive_axle=True)
     upper = make_jaw(TWO_KNUCKLES)
+    upper = Pos(0, 0, 2*PIVOT_Z) * Rot(180, 0, 0) * upper
+    upper = (Pos(PIVOT_X, 0, PIVOT_Z) * Rot(0, -open_angle, 0)
+             * Pos(-PIVOT_X, 0, -PIVOT_Z) * upper)
+    return lower, upper
 
-    export_stl(lower, str(out/'money_clip_v2_3_knuckles.stl'))
-    export_stl(upper, str(out/'money_clip_v2_2_knuckles.stl'))
-    export_step(lower, str(out/'money_clip_v2_3_knuckles.step'))
-    export_step(upper, str(out/'money_clip_v2_2_knuckles.step'))
 
-    # Mirror around hinge centre by rotating 180 degrees around the X axis.
-    # The plates are face-to-face, nominal empty gap 0.0 mm.
-    top_closed = Pos(0, 0, 2*PIVOT_Z) * Rot(180, 0, 0) * upper
-    closed_assembly = Compound(children=[lower, top_closed])
-    export_step(closed_assembly, str(out/'money_clip_v2_closed_assembly.step'))
+def make_print_layout():
+    """Keep the hinge vertical, with both jaw side edges on the bed."""
+    return Compound(children=[Pos(0, 0, WIDTH/2) * Rot(90, 0, 0) * jaw
+                              for jaw in make_clip(180)])
 
-    # A 14-degree open view to inspect the interleaved knuckles in a CAD app.
-    top_open = (Pos(0, 0, PIVOT_Z) * Rot(0, -14, 0)
-                * Pos(0, 0, -PIVOT_Z) * top_closed)
-    open_assembly = Compound(children=[lower, top_open])
-    show(open_assembly, names=["Mounting plate"])
-    #export_step(open_assembly, str(out/'money_clip_v2_open_assembly.step'))
 
-    print('Jaw STLs, jaw STEPs and closed assembly STEP saved to:', out)
-    print('Empty closed jaw gap: 0 mm (contacting inside faces).')
-    print('Print both jaws FLAT, with magnet pockets facing UP, no supports.')
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output', type=Path, default=Path('output'))
+    args = parser.parse_args()
+    args.output.mkdir(parents=True, exist_ok=True)
+    layout = make_print_layout()
+    export_stl(layout, args.output / 'money_clip_print_in_place.stl')
+    export_step(layout, args.output / 'money_clip_print_in_place.step')
+    export_step(Compound(children=list(make_clip(0))),
+                args.output / 'money_clip_closed.step')
+    print(f'Exported print-in-place clip to {args.output}')
+    print('Print as oriented: hinge vertical, jaws fully open. No hinge supports.')
+
 
 if __name__ == '__main__':
     main()
