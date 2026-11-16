@@ -97,15 +97,19 @@ saved STEP in the viewer in its printing orientation.
 
 Exports `output/money_clip_print_in_place.stl` and `.step`, plus a closed
 assembly STEP for inspection. Print the combined STL **as oriented**, with
-both jaws fully open on their side edges and the hinge axis vertical. Keep
-supports and brim material out of the hinge gaps. A brim on the jaw edges
-can help adhesion. The printed 2.4 mm axle is integral to one jaw; the other
+one jaw flat on the bed and the other upright at 90 degrees. The hinge axis
+is horizontal. Keep supports and brim material out of the hinge gaps. A brim
+can help adhesion of the upright jaw. The printed 2.4 mm axle is integral to
+one jaw; the other
 jaw is captive between its knuckles. No filament pin or hinge assembly is needed.
 
-Default clearance is 0.30 mm radially and 0.35 mm between knuckle ends.
+Each jaw is 2.8 mm thick, leaving 0.7 mm behind the 2.1 mm deep magnet
+pockets. Three pockets per jaw are spaced across the width. Default hinge
+clearance is 0.30 mm radially and 0.35 mm between knuckle ends.
 Use these as starting values for a calibrated A1 with PLA+; free the hinge
-gently after cooling. Small overhangs at knuckle ends and the sideways magnet
-pockets still need slicer inspection and a physical trial. Install four 8 x 2 mm
-magnets with attracting poles and keep glue out of the hinge. Geometry tests
+gently after cooling. The horizontal axle, knuckle gaps, and sideways magnet
+pockets need slicer inspection and a physical trial; prevent supports from
+filling hinge clearances. Install six 8 x 2 mm magnets (three per jaw) with
+attracting poles and keep glue out of the hinge. Geometry tests
 check separate valid solids and collision-free sampled rotation, not printed
 fit or hinge strength.
