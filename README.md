@@ -124,3 +124,7 @@ measured for holding force. To inspect the closed profile in the viewer:
 ```sh
 python magnetic_money_clip.py --view --view-state closed
 ```
+
+Hinge-to-jaw transitions use 0.9 mm rounded blends, with 0.3 mm rounding
+on the bed-contact land corners. Knuckle end faces and bore clearances are
+kept intact, and the bed lands retain flat centres.

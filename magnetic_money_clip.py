@@ -13,8 +13,8 @@ magnets with opposing poles attracting, keeping adhesive out of the hinge.
 """
 from pathlib import Path
 from build123d import (
-    Align, Box, Compound, Cylinder, Plane, Polygon, Pos, RectangleRounded, Rot,
-    extrude, export_step, export_stl,
+    Align, Axis, Box, Compound, Cylinder, Plane, Polygon, Pos, RectangleRounded, Rot,
+    extrude, fillet, export_step, export_stl,
 )
 import argparse
 from math import radians, cos, tan
@@ -26,6 +26,8 @@ TIP_X = 41.2
 CORNER_RADIUS = 3.0
 PLATE_THICKNESS = 2.8
 JAW_ANGLE = 3.0  # Moving jaw converges toward the straight jaw at its tip.
+HINGE_BLEND_RADIUS = 0.9
+BED_LAND_RADIUS = 0.3
 
 # The tips meet at closure; the moving jaw has clearance toward its root.
 # The hinge is only a rotational joint: no flexing of printed jaws.
@@ -52,6 +54,34 @@ def moving_body_location():
     """Incline the moving body about its inner tip; leave hinge axis unchanged."""
     return (Pos(TIP_X, 0, PLATE_THICKNESS) * Rot(0, -JAW_ANGLE, 0)
             * Pos(-TIP_X, 0, -PLATE_THICKNESS))
+
+
+def round_hinge_transitions(jaw, captive_axle):
+    """Blend side-profile corners without rounding knuckle ends or the bore.
+
+    Only edges parallel to the axle are changed. Flat centres of the bed
+    lands remain, and the axial clearance faces keep their original positions.
+    """
+    def blend(predicate, radius):
+        nonlocal jaw
+        edges = [edge for edge in jaw.edges().filter_by(Axis.Y)
+                 if predicate(edge.center())]
+        if not edges:
+            raise ValueError('Expected hinge transition edges were not found')
+        jaw = fillet(edges, radius)
+
+    if captive_axle:
+        blend(lambda p: abs(p.X - KNUCKLE_RADIUS) < 1e-5
+              and abs(p.Z - PIVOT_Z) < 1e-5, HINGE_BLEND_RADIUS)
+    else:
+        blend(lambda p: abs(p.X - 1) < 1e-5 and p.Z < 0,
+              HINGE_BLEND_RADIUS)
+    blend(lambda p: abs(p.X + (PLATE_THICKNESS - 0.2)) < 1e-5
+          and p.Z < 0.9, BED_LAND_RADIUS)
+    if not captive_axle:
+        blend(lambda p: abs(p.X + PLATE_THICKNESS) < 1e-5,
+              BED_LAND_RADIUS)
+    return jaw
 
 
 def make_jaw(knuckles, *, captive_axle=False):
@@ -132,7 +162,7 @@ def make_jaw(knuckles, *, captive_axle=False):
     else:
         jaw = jaw - pin_hole
 
-    return jaw
+    return round_hinge_transitions(jaw, captive_axle)
 
 
 def make_clip(open_angle=90.0):
