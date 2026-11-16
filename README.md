@@ -125,6 +125,12 @@ measured for holding force. To inspect the closed profile in the viewer:
 python magnetic_money_clip.py --view --view-state closed
 ```
 
-Hinge-to-jaw transitions use 0.9 mm rounded blends, with 0.3 mm rounding
-on the bed-contact land corners. Knuckle end faces and bore clearances are
+The fixed hinge-to-jaw transition uses a 0.9 mm rounded blend. The upright
+jaw uses a straight underside gusset, about 27 degrees outward from vertical
+in the print orientation, replacing the projecting shoulder. Bed-contact
+land corners have 0.3 mm rounding. Knuckle end faces and bore clearances are
 kept intact, and the bed lands retain flat centres.
+
+The sloped gusset removes the local underside ledge at the upright jaw root.
+Inspect the remaining horizontal axle and magnet-pocket bridges in the slicer;
+this change does not establish that the entire print needs no supports.

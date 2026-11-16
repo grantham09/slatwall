@@ -1,5 +1,5 @@
 import unittest
-from build123d import Align, Box, Cylinder, Pos
+from build123d import Align, Box, Cylinder, Plane, Pos
 from magnetic_money_clip import (
     make_clip, make_jaw, make_print_layout, RADIAL_CLEARANCE,
     PLATE_THICKNESS, TIP_X, THREE_KNUCKLES, TWO_KNUCKLES,
@@ -76,3 +76,19 @@ class MoneyClipTests(unittest.TestCase):
         # Closing past tip contact must be stopped by the jaw, not the hinge.
         fixed, moving = make_clip(-1)
         self.assertGreater((fixed & moving).volume, .1)
+
+    def test_upright_hinge_underside_is_a_support_slope(self):
+        _, moving = make_clip(90)
+        for y in (-6, 6):
+            section = moving.intersect(Plane.XZ.offset(-y))
+            ramps = []
+            for edge in section.edges():
+                a, b = edge.position_at(0), edge.position_at(1)
+                if (max(a.X, b.X) <= -PLATE_THICKNESS + 1e-5
+                        and min(a.Z, b.Z) > 4
+                        and max(a.Z, b.Z) < 8.2
+                        and abs(b.X - a.X) > 1):
+                    ramps.append(edge)
+                    # No more than 45 degrees outward from the vertical.
+                    self.assertLessEqual(abs(b.X-a.X), abs(b.Z-a.Z))
+            self.assertEqual(len(ramps), 1)

@@ -73,9 +73,8 @@ def round_hinge_transitions(jaw, captive_axle):
     if captive_axle:
         blend(lambda p: abs(p.X - KNUCKLE_RADIUS) < 1e-5
               and abs(p.Z - PIVOT_Z) < 1e-5, HINGE_BLEND_RADIUS)
-    else:
-        blend(lambda p: abs(p.X - 1) < 1e-5 and p.Z < 0,
-              HINGE_BLEND_RADIUS)
+    # Keep the moving jaw's underside ramp straight so its printing slope
+    # is controlled; a round here would recreate the unsupported shoulder.
     blend(lambda p: abs(p.X + (PLATE_THICKNESS - 0.2)) < 1e-5
           and p.Z < 0.9, BED_LAND_RADIUS)
     if not captive_axle:
@@ -129,7 +128,11 @@ def make_jaw(knuckles, *, captive_axle=False):
             vertical_thickness = PLATE_THICKNESS / cos(a)
             reinforcement = Pos(0, low, 0) * extrude(
                 Plane.XZ * Polygon(
-                    (1, inner_z(1) - vertical_thickness),
+                    # In the upright print, X becomes height and -Z becomes
+                    # outward reach. Start on the barrel and ramp to the
+                    # body's outer face before the body begins: no ledge.
+                    (1, 0.3),
+                    (BODY_START_X, inner_z(BODY_START_X) - vertical_thickness),
                     (8, inner_z(8) - vertical_thickness),
                     (8, inner_z(8)), (1, inner_z(1)), align=None),
                 amount=segment_width, dir=(0, 1, 0))
