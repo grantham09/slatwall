@@ -1,5 +1,5 @@
 import unittest
-from build123d import Align, Box, Cylinder, Plane, Pos
+from build123d import Align, Box, Cylinder, GeomType, Plane, Pos
 from magnetic_money_clip import (
     make_clip, make_jaw, make_print_layout, RADIAL_CLEARANCE,
     PLATE_THICKNESS, TIP_X, THREE_KNUCKLES, TWO_KNUCKLES,
@@ -77,18 +77,21 @@ class MoneyClipTests(unittest.TestCase):
         fixed, moving = make_clip(-1)
         self.assertGreater((fixed & moving).volume, .1)
 
-    def test_upright_hinge_underside_is_a_support_slope(self):
+    def test_curved_hinge_underside_reaches_bed_with_support_slope(self):
         _, moving = make_clip(90)
         for y in (-6, 6):
             section = moving.intersect(Plane.XZ.offset(-y))
-            ramps = []
-            for edge in section.edges():
-                a, b = edge.position_at(0), edge.position_at(1)
-                if (max(a.X, b.X) <= -PLATE_THICKNESS + 1e-5
-                        and min(a.Z, b.Z) > 4
-                        and max(a.Z, b.Z) < 8.2
-                        and abs(b.X - a.X) > 1):
-                    ramps.append(edge)
-                    # No more than 45 degrees outward from the vertical.
-                    self.assertLessEqual(abs(b.X-a.X), abs(b.Z-a.Z))
-            self.assertEqual(len(ramps), 1)
+            curves = [edge for edge in section.edges()
+                      if edge.geom_type == GeomType.BSPLINE
+                      and min(edge.position_at(0).Z, edge.position_at(1).Z) < .001
+                      and max(edge.position_at(0).Z, edge.position_at(1).Z) > 8]
+            self.assertEqual(len(curves), 1)
+            curve = curves[0]
+            for i in range(101):
+                tangent = curve.tangent_at(i/100)
+                # At most 45 degrees outward from vertical along the curve.
+                self.assertLessEqual(abs(tangent.X), abs(tangent.Z) + 1e-6)
+            # It must bow away from the old straight ramp.
+            midpoint = curve.position_at(.5)
+            chord = (curve.position_at(0) + curve.position_at(1)) * .5
+            self.assertGreater((midpoint - chord).length, .3)

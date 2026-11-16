@@ -13,7 +13,8 @@ magnets with opposing poles attracting, keeping adhesive out of the hinge.
 """
 from pathlib import Path
 from build123d import (
-    Align, Axis, Box, Compound, Cylinder, Plane, Polygon, Pos, RectangleRounded, Rot,
+    Align, Axis, Box, Compound, Cylinder, Plane, Pos, RectangleRounded, Rot,
+    BuildSketch, BuildLine, Bezier, Polyline, make_face,
     extrude, fillet, export_step, export_stl,
 )
 import argparse
@@ -73,13 +74,9 @@ def round_hinge_transitions(jaw, captive_axle):
     if captive_axle:
         blend(lambda p: abs(p.X - KNUCKLE_RADIUS) < 1e-5
               and abs(p.Z - PIVOT_Z) < 1e-5, HINGE_BLEND_RADIUS)
-    # Keep the moving jaw's underside ramp straight so its printing slope
-    # is controlled; a round here would recreate the unsupported shoulder.
-    blend(lambda p: abs(p.X + (PLATE_THICKNESS - 0.2)) < 1e-5
-          and p.Z < 0.9, BED_LAND_RADIUS)
-    if not captive_axle:
-        blend(lambda p: abs(p.X + PLATE_THICKNESS) < 1e-5,
-              BED_LAND_RADIUS)
+        blend(lambda p: abs(p.X + (PLATE_THICKNESS - 0.2)) < 1e-5
+              and p.Z < 0.9, BED_LAND_RADIUS)
+    # The moving underside is already a smooth Bezier down to its flat base.
     return jaw
 
 
@@ -126,31 +123,35 @@ def make_jaw(knuckles, *, captive_axle=False):
             def inner_z(x):
                 return PLATE_THICKNESS + tan(a) * (x - TIP_X)
             vertical_thickness = PLATE_THICKNESS / cos(a)
+            outer_end = inner_z(BODY_START_X) - vertical_thickness
+            run = (BODY_START_X + PLATE_THICKNESS) / 3
+            with BuildSketch(Plane.XZ) as web:
+                with BuildLine():
+                    Bezier((-PLATE_THICKNESS, 1.5),
+                           (-PLATE_THICKNESS + run, -1.1),
+                           (BODY_START_X - run, outer_end - tan(a)*run),
+                           (BODY_START_X, outer_end))
+                    Polyline((BODY_START_X, outer_end),
+                             (8, inner_z(8) - vertical_thickness),
+                             (8, inner_z(8)), (1, inner_z(1)),
+                             (1, PIVOT_Z + 1.3),
+                             (-PLATE_THICKNESS, PIVOT_Z + 1.3),
+                             (-PLATE_THICKNESS, 1.5))
+                make_face()
             reinforcement = Pos(0, low, 0) * extrude(
-                Plane.XZ * Polygon(
-                    # In the upright print, X becomes height and -Z becomes
-                    # outward reach. Start on the barrel and ramp to the
-                    # body's outer face before the body begins: no ledge.
-                    (1, 0.3),
-                    (BODY_START_X, inner_z(BODY_START_X) - vertical_thickness),
-                    (8, inner_z(8) - vertical_thickness),
-                    (8, inner_z(8)), (1, inner_z(1)), align=None),
-                amount=segment_width, dir=(0, 1, 0))
+                web.sketch, amount=segment_width, dir=(0, 1, 0))
 
         # A flat land on the back of the jaw.
         foot = Pos(0.0, middle, 0) * Box(
             2 * (PLATE_THICKNESS - 0.2), segment_width, 0.85,
             align=(Align.CENTER, Align.CENTER, Align.MIN),
         )
-        jaw = jaw.fuse(barrel, reinforcement, foot)
-        if not captive_axle:
-            # At 90 degrees this rear land becomes a flat bed-contact pad.
-            # It stays within this knuckle's Y interval, preserving axial gaps.
-            upright_land = Pos(-PLATE_THICKNESS, middle, PIVOT_Z) * Box(
-                0.6, segment_width, 2.6,
-                align=(Align.MIN, Align.CENTER, Align.CENTER),
-            )
-            jaw = jaw.fuse(upright_land)
+        if captive_axle:
+            jaw = jaw.fuse(barrel, reinforcement, foot)
+        else:
+            # The curved web includes its own flat bed land. Extra pads here
+            # would protrude through the curve and recreate a small ledge.
+            jaw = jaw.fuse(barrel, reinforcement)
 
     pin_hole = (
         Pos(PIVOT_X, 0, PIVOT_Z) * Rot(90, 0, 0)

@@ -126,11 +126,11 @@ python magnetic_money_clip.py --view --view-state closed
 ```
 
 The fixed hinge-to-jaw transition uses a 0.9 mm rounded blend. The upright
-jaw uses a straight underside gusset, about 27 degrees outward from vertical
-in the print orientation, replacing the projecting shoulder. Bed-contact
-land corners have 0.3 mm rounding. Knuckle end faces and bore clearances are
-kept intact, and the bed lands retain flat centres.
+jaw has a smooth curved underside extending all the way to its flat bed
+land. The curve blends into the angled jaw without a projecting shoulder;
+its outward slope stays within 45 degrees of vertical in the print orientation.
+The curve is repeated within each moving knuckle's width so axial hinge gaps
+stay clear. The straight jaw retains rounded bed-land corners.
 
-The sloped gusset removes the local underside ledge at the upright jaw root.
 Inspect the remaining horizontal axle and magnet-pocket bridges in the slicer;
-this change does not establish that the entire print needs no supports.
+the curved root alone does not establish that the entire print needs no supports.
