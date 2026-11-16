@@ -1,6 +1,7 @@
 """Magnetic money clip with a captive print-in-place hinge (millimetres).
 
 Run: .venv/bin/python magnetic_money_clip.py
+View exported STEP in VS Code OCP CAD Viewer: python magnetic_money_clip.py --view
 Print output/money_clip_print_in_place.stl as oriented, with no supports
 inside the hinge. Both jaws are fully open, standing on their side edges;
 the hinge axis is vertical. Use a brim if needed, keeping it out of hinge gaps.
@@ -132,6 +133,8 @@ def make_print_layout():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=Path('output'))
+    parser.add_argument('--view', action='store_true',
+                        help='Show the exported STEP in VS Code OCP CAD Viewer (requires ocp-vscode)')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     layout = make_print_layout()
@@ -141,6 +144,15 @@ def main():
                 args.output / 'money_clip_closed.step')
     print(f'Exported print-in-place clip to {args.output}')
     print('Print as oriented: hinge vertical, jaws fully open. No hinge supports.')
+    if args.view:
+        try:
+            from ocp_vscode import show
+        except ImportError:
+            parser.exit(1, 'Exports saved. Viewing requires ocp-vscode: '
+                        'python -m pip install ocp-vscode\n')
+        from build123d import import_step
+        exported = import_step(args.output / 'money_clip_print_in_place.step')
+        show(exported, names=['Money clip — exported print layout'])
 
 
 if __name__ == '__main__':

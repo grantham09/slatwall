@@ -90,6 +90,11 @@ release force, fatigue, load capacity, or compatibility with a particular wall.
 python magnetic_money_clip.py
 ```
 
+To view the exported STEP in VS Code with the OCP CAD Viewer extension,
+install `ocp-vscode` in your Python environment, then run
+`python magnetic_money_clip.py --view`. This exports the files and opens the
+saved STEP in the viewer in its printing orientation.
+
 Exports `output/money_clip_print_in_place.stl` and `.step`, plus a closed
 assembly STEP for inspection. Print the combined STL **as oriented**, with
 both jaws fully open on their side edges and the hinge axis vertical. Keep
