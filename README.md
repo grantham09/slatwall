@@ -88,49 +88,53 @@ release force, fatigue, load capacity, or compatibility with a particular wall.
 
 ```sh
 python magnetic_money_clip.py
-```
-
-To view the exported STEP in VS Code with the OCP CAD Viewer extension,
-install `ocp-vscode` in your Python environment, then run
-`python magnetic_money_clip.py --view`. This exports the files and opens the
-saved STEP in the viewer in its printing orientation.
-
-Exports `output/money_clip_print_in_place.stl` and `.step`, plus a closed
-assembly STEP for inspection. Print the combined STL **as oriented**, with
-one jaw flat on the bed and the other upright at 90 degrees. The hinge axis
-is horizontal. Keep supports and brim material out of the hinge gaps. A brim
-can help adhesion of the upright jaw. The printed 2.4 mm axle is integral to
-one jaw; the other
-jaw is captive between its knuckles. No filament pin or hinge assembly is needed.
-
-Each jaw is 2.8 mm thick, leaving 0.7 mm behind the 2.1 mm deep magnet
-pockets. Three pockets per jaw are spaced across the width. Default hinge
-clearance is 0.30 mm radially and 0.35 mm between knuckle ends.
-Use these as starting values for a calibrated A1 with PLA+; free the hinge
-gently after cooling. The horizontal axle, knuckle gaps, and sideways magnet
-pockets need slicer inspection and a physical trial; prevent supports from
-filling hinge clearances. Install six 8 x 2 mm magnets (three per jaw) with
-attracting poles and keep glue out of the hinge. Geometry tests
-check separate valid solids and collision-free sampled rotation, not printed
-fit or hinge strength.
-
-The straight jaw and the moving jaw now have smooth tips with no recessed
-grip grooves. The moving jaw slopes inward by 3 degrees: its tip contacts
-the straight jaw first, leaving about 1.9 mm of clearance near the body root.
-Its three magnet pockets follow the inclined face; magnets on the opposing
-jaws are therefore slightly angled when closed. This geometry has not been
-measured for holding force. To inspect the closed profile in the viewer:
-
-```sh
+python magnetic_money_clip.py --view
 python magnetic_money_clip.py --view --view-state closed
 ```
 
-The fixed hinge-to-jaw transition uses a 0.9 mm rounded blend. The upright
-jaw has a smooth curved underside extending all the way to its flat bed
-land. The curve blends into the angled jaw without a projecting shoulder;
-its outward slope stays within 45 degrees of vertical in the print orientation.
-The curve is repeated within each moving knuckle's width so axial hinge gaps
-stay clear. The straight jaw retains rounded bed-land corners.
+Viewing requires `ocp-vscode` and the VS Code OCP CAD Viewer extension.
+The print view displays the exported STEP, including six small caps beside
+the hinged jaws. The closed view includes the caps installed in the jaws.
 
-Inspect the remaining horizontal axle and magnet-pocket bridges in the slicer;
-the curved root alone does not establish that the entire print needs no supports.
+The clip uses **six 8 mm diameter × 2 mm thick magnets**, three per jaw.
+Each magnet loads from the back and has its own **9.55 mm snap-in cap**;
+there is no cover spanning the whole face. The magnets form a triangle on
+each jaw to leave room for individual retaining skirts. The clamping face
+has a continuous **0.6 mm PLA skin** over each magnet. No adhesive is needed.
+Each jaw is now **3.6 mm thick**, including the recessed rear cap seat.
+The added plastic between magnets will reduce attraction compared with
+exposed magnets; holding force needs a physical trial.
+
+Exports into `output/`:
+
+- `money_clip_print_in_place.stl` and `.step`: two captive hinged jaws plus
+  six loose caps, already separated on the bed.
+- `money_clip_magnet_cap.stl` and `.step`: a single spare cap.
+- `money_clip_closed.step`: assembled jaws and installed caps for inspection.
+
+Print the main STL as oriented: one jaw flat on the bed, the other upright
+at 90 degrees, and the cap discs flat with their split skirts pointing up.
+Keep supports and brim material out of hinge clearances, snap grooves and
+cap slots. A brim can help upright-jaw adhesion. The 2.4 mm axle is printed
+integrally; no filament pin or hinge assembly is needed. Hinge clearances
+are 0.30 mm radially and 0.35 mm between knuckle ends.
+
+After cooling, gently free the hinge. Check polarity before installing any
+caps: opposing magnets must attract. Put each magnet against the blind
+pocket floor behind the clamping skin, then press its cap in from the back
+until the flange seats flush and the split skirt's bead catches in the groove.
+The skirt surrounds the magnet; the central disc keeps it from falling out.
+Trial-fit one cap first. Snap fit and retention in PLA+ depend on calibration
+and must be physically checked; these caps are not designed for frequent
+removal.
+
+The jaws have smooth tips. The moving jaw slopes inward by 3 degrees so
+the tips contact first, leaving roughly 1.9 mm clearance near the body root.
+Its magnet pockets follow the inclined face. The upright jaw's underside
+curves continuously down to its flat bed land, with outward slope within
+45 degrees of vertical. Inspect horizontal axle bridges, rear pocket roofs
+and groove overhangs in your slicer before printing.
+
+Geometry tests check valid separate solids, sampled hinge motion, smooth
+tip contact, continuous skins, magnet/cap fit and mechanical cap capture.
+They do not establish printed snap force, holding force or fatigue life.

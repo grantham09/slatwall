@@ -9,11 +9,12 @@ The axle is fused to the three-knuckle jaw; the other jaw rotates around it.
 The moving jaw slopes inward by 3 degrees so the smooth tips meet first.
 Gently free the hinge after cooling. Clearances are starting values for PLA+;
 verify with your printer before relying on the clip. Install six 8 x 2 mm
-magnets with opposing poles attracting, keeping adhesive out of the hinge.
+magnets from the back and retain each with its own small printed snap cap.
+The 0.6 mm PLA clamping skin covers the magnets; no glue is required.
 """
 from pathlib import Path
 from build123d import (
-    Align, Axis, Box, Compound, Cylinder, Plane, Pos, RectangleRounded, Rot,
+    Align, Axis, Box, Compound, Cone, Cylinder, Plane, Pos, RectangleRounded, Rot,
     BuildSketch, BuildLine, Bezier, Polyline, make_face,
     extrude, fillet, export_step, export_stl,
 )
@@ -25,7 +26,7 @@ WIDTH = 28.0
 BODY_START_X = 5.3
 TIP_X = 41.2
 CORNER_RADIUS = 3.0
-PLATE_THICKNESS = 2.8
+PLATE_THICKNESS = 3.6
 JAW_ANGLE = 3.0  # Moving jaw converges toward the straight jaw at its tip.
 HINGE_BLEND_RADIUS = 0.9
 BED_LAND_RADIUS = 0.3
@@ -34,17 +35,69 @@ BED_LAND_RADIUS = 0.3
 # The hinge is only a rotational joint: no flexing of printed jaws.
 PIVOT_X = 0.0
 PIVOT_Z = PLATE_THICKNESS
-KNUCKLE_RADIUS = PLATE_THICKNESS  # 5.6 mm OD, flat jaw remains on the bed
+KNUCKLE_RADIUS = PLATE_THICKNESS  # Flat jaw and upright curved land remain on the bed
 AXLE_D = 2.4
 RADIAL_CLEARANCE = 0.30
 PIN_HOLE_D = AXLE_D + 2 * RADIAL_CLEARANCE
 
 MAGNET_D = 8.0
 MAGNET_THICKNESS = 2.0
-MAGNET_POCKET_D = 8.20  # Diameter clearance for glued magnets
-MAGNET_POCKET_DEPTH = 2.10
-MAGNET_X = 34.0
-MAGNET_Y = (-9.0, 0.0, 9.0)
+MAGNET_SKIN = 0.6
+MAGNET_POCKET_D = 9.2  # Room for the magnet and the cap's split retaining skirt.
+MAGNET_POCKET_DEPTH = PLATE_THICKNESS - MAGNET_SKIN
+MAGNET_CENTRES = ((34.0, -7.0), (34.0, 7.0), (23.0, 0.0))
+CAP_SEAT_D = 9.8
+CAP_SEAT_DEPTH = 0.8
+CAP_GROOVE_D = 9.7
+CAP_GROOVE_BOTTOM = 2.15
+CAP_GROOVE_TOP = 2.75
+CAP_DISC_D = 9.55
+CAP_SKIRT_D = 9.0
+CAP_SKIRT_INNER_D = 8.3
+CAP_BEAD_D = 9.5
+CAP_SKIRT_TOP = 2.8
+
+
+def make_magnet_cap():
+    """Local rear snap cap: flat outside down, four split skirt fingers up.
+
+    The bead flexes through the 9.2 mm throat and catches in its annular
+    groove. The central disc traps the magnet without adhesive. Trial-fit
+    one cap before fitting all six; PLA snap retention is printer-dependent.
+    """
+    disc = Cylinder(CAP_DISC_D/2, CAP_SEAT_DEPTH,
+                    align=(Align.CENTER, Align.CENTER, Align.MIN))
+    skirt = Pos(0, 0, CAP_SEAT_DEPTH) * Cylinder(
+        CAP_SKIRT_D/2, CAP_SKIRT_TOP - CAP_SEAT_DEPTH,
+        align=(Align.CENTER, Align.CENTER, Align.MIN))
+    bead = Pos(0, 0, 2.3) * Cone(CAP_SKIRT_D/2, CAP_BEAD_D/2, .2,
+                                align=(Align.CENTER, Align.CENTER, Align.MIN))
+    bead = bead.fuse(Pos(0, 0, 2.5) * Cone(CAP_BEAD_D/2, CAP_SKIRT_D/2, .2,
+                                         align=(Align.CENTER, Align.CENTER, Align.MIN)))
+    cap = disc.fuse(skirt, bead)
+    cap = cap - Pos(0, 0, CAP_SEAT_DEPTH) * Cylinder(
+        CAP_SKIRT_INNER_D/2, CAP_SKIRT_TOP,
+        align=(Align.CENTER, Align.CENTER, Align.MIN))
+    for angle in (0, 90, 180, 270):
+        slot = Rot(0, 0, angle) * Pos(3.9, 0, .35) * Box(
+            2, .6, 3, align=(Align.MIN, Align.CENTER, Align.MIN))
+        cap = cap - slot
+    return cap
+
+
+def cut_magnet_pockets(jaw):
+    """Rear loading: continuous PLA face, recessed cap seat and snap groove."""
+    for x, y in MAGNET_CENTRES:
+        for diameter, bottom, depth in (
+                (MAGNET_POCKET_D, -.1, MAGNET_POCKET_DEPTH + .1),
+                (CAP_SEAT_D, -.1, CAP_SEAT_DEPTH + .1),
+                (CAP_GROOVE_D, CAP_GROOVE_BOTTOM,
+                 CAP_GROOVE_TOP - CAP_GROOVE_BOTTOM)):
+            jaw = jaw - Pos(x, y, bottom) * Cylinder(
+                diameter/2, depth,
+                align=(Align.CENTER, Align.CENTER, Align.MIN))
+    return jaw
+
 
 # 0.35 mm clearance between adjacent knuckle end faces.
 THREE_KNUCKLES = [(-14.0, -9.10), (-2.70, 2.70), (9.10, 14.0)]
@@ -88,13 +141,7 @@ def make_jaw(knuckles, *, captive_axle=False):
         amount=PLATE_THICKNESS,
     )
 
-    # Cut pockets normal to the body before inclining the moving jaw.
-    for y in MAGNET_Y:
-        pocket = Pos(MAGNET_X, y, PLATE_THICKNESS - MAGNET_POCKET_DEPTH) * Cylinder(
-            MAGNET_POCKET_D/2, MAGNET_POCKET_DEPTH + 0.20,
-            align=(Align.CENTER, Align.CENTER, Align.MIN),
-        )
-        jaw = jaw - pocket
+    jaw = cut_magnet_pockets(jaw)
     if not captive_axle:
         jaw = moving_body_location() * jaw
 
@@ -188,6 +235,24 @@ def make_print_layout():
     return Compound(children=list(make_clip(90)))
 
 
+def make_caps_print_layout():
+    cap = make_magnet_cap()
+    return Compound(children=[Pos(55 + 12*i, y, 0) * cap
+                              for i in range(3) for y in (-7, 7)])
+
+
+def make_closed_assembly():
+    lower, upper = make_clip(0)
+    cap = make_magnet_cap()
+    caps = []
+    for x, y in MAGNET_CENTRES:
+        local = Pos(x, y, 0) * cap
+        caps.append(local)
+        caps.append(Pos(0, 0, 2*PIVOT_Z) * Rot(180, 0, 0)
+                    * moving_body_location() * local)
+    return Compound(children=[lower, upper, *caps])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=Path('output'))
@@ -197,10 +262,12 @@ def main():
                         help='Assembly to display with --view (default: print)')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
-    layout = make_print_layout()
+    layout = Compound(children=[make_print_layout(), make_caps_print_layout()])
     export_stl(layout, args.output / 'money_clip_print_in_place.stl')
     export_step(layout, args.output / 'money_clip_print_in_place.step')
-    export_step(Compound(children=list(make_clip(0))),
+    export_stl(make_magnet_cap(), args.output / 'money_clip_magnet_cap.stl')
+    export_step(make_magnet_cap(), args.output / 'money_clip_magnet_cap.step')
+    export_step(make_closed_assembly(),
                 args.output / 'money_clip_closed.step')
     print(f'Exported print-in-place clip to {args.output}')
     print('Print as oriented: one jaw flat, one upright at 90 degrees. Keep hinge gaps clear.')
