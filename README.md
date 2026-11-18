@@ -97,10 +97,14 @@ The print view displays the exported STEP, including six small caps beside
 the hinged jaws. The closed view includes the caps installed in the jaws.
 
 The clip uses **six 8 mm diameter × 2 mm thick magnets**, three per jaw.
-Each magnet loads from the back and has its own **9.55 mm snap-in cap**;
+Each magnet has its own **9.55 mm snap-in cap**;
 there is no cover spanning the whole face. The magnets form a triangle on
-each jaw to leave room for individual retaining skirts. The clamping face
-has a continuous **0.6 mm PLA skin** over each magnet. No adhesive is needed.
+each jaw to leave room for individual retaining skirts. The flat jaw loads from the back, leaving a continuous **0.6 mm PLA
+clamping skin**. The upright jaw loads from the **money-facing side**, with
+flush cap faces; its opposite, wallet-facing back retains a continuous
+**0.6 mm PLA skin** without pocket openings. The jaw remains inclined by
+3 degrees. This provides a smooth mounting surface; no wallet fasteners
+or attachment hardware are included. No magnet adhesive is needed.
 Each jaw is now **3.6 mm thick**, including the recessed rear cap seat.
 The added plastic between magnets will reduce attraction compared with
 exposed magnets; holding force needs a physical trial.
@@ -121,7 +125,8 @@ are 0.30 mm radially and 0.35 mm between knuckle ends.
 
 After cooling, gently free the hinge. Check polarity before installing any
 caps: opposing magnets must attract. Put each magnet against the blind
-pocket floor behind the clamping skin, then press its cap in from the back
+pocket floor, then press its cap in from the appropriate loading side
+(back of the flat jaw, money-facing side of the upright jaw)
 until the flange seats flush and the split skirt's bead catches in the groove.
 The skirt surrounds the magnet; the central disc keeps it from falling out.
 Trial-fit one cap first. Snap fit and retention in PLA+ depend on calibration
@@ -132,9 +137,12 @@ The jaws have smooth tips. The moving jaw slopes inward by 3 degrees so
 the tips contact first, leaving roughly 1.9 mm clearance near the body root.
 Its magnet pockets follow the inclined face. The upright jaw's underside
 curves continuously down to its flat bed land, with outward slope within
-45 degrees of vertical. Inspect horizontal axle bridges, rear pocket roofs
+45 degrees of vertical. Inspect horizontal axle bridges, pocket roofs
 and groove overhangs in your slicer before printing.
 
 Geometry tests check valid separate solids, sampled hinge motion, smooth
 tip contact, continuous skins, magnet/cap fit and mechanical cap capture.
-They do not establish printed snap force, holding force or fatigue life.
+On the upright jaw, magnetic attraction loads the caps outward toward the
+money, so physical pull-out testing with your magnets is particularly
+important before attaching it to a wallet. Geometry tests do not establish
+printed snap force, holding force or fatigue life.

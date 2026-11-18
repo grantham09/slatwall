@@ -5,7 +5,7 @@ from magnetic_money_clip import (
     PLATE_THICKNESS, TIP_X, THREE_KNUCKLES, TWO_KNUCKLES,
     MAGNET_CENTRES, MAGNET_SKIN, MAGNET_POCKET_D, MAGNET_POCKET_DEPTH,
     make_magnet_cap, make_caps_print_layout, make_closed_assembly,
-    moving_body_location,
+    moving_body_location, magnet_loading_location,
 )
 
 
@@ -39,7 +39,7 @@ class MoneyClipTests(unittest.TestCase):
         for jaw in layout.solids():
             self.assertGreater((jaw & bed_slice).volume, .05)
 
-    def test_rear_magnet_pockets_have_continuous_clamping_skins(self):
+    def test_magnet_pockets_keep_opposite_faces_continuous(self):
         self.assertEqual(len(MAGNET_CENTRES), 3)
         self.assertAlmostEqual(PLATE_THICKNESS - MAGNET_POCKET_DEPTH, MAGNET_SKIN)
         for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):
@@ -51,33 +51,54 @@ class MoneyClipTests(unittest.TestCase):
                     4.4, MAGNET_SKIN - .2,
                     align=(Align.CENTER, Align.CENTER, Align.MIN))
                 if knuckles == TWO_KNUCKLES:
-                    magnet = moving_body_location() * magnet
-                    skin = moving_body_location() * skin
+                    placement = moving_body_location() * magnet_loading_location(True)
+                    magnet = placement * magnet
+                    skin = placement * skin
                 overlap = jaw & magnet
                 self.assertLess(overlap.volume if overlap else 0, 1e-6)
                 self.assertAlmostEqual((jaw & skin).volume, skin.volume, places=5)
 
     def test_local_snap_caps_fit_and_are_mechanically_captured(self):
-        jaw = make_jaw(THREE_KNUCKLES, captive_axle=True)
         cap = make_magnet_cap()
         self.assertTrue(cap.is_valid)
         self.assertEqual(len(cap.solids()), 1)
         self.assertLess(cap.bounding_box().size.X, 10)
         self.assertLess(cap.bounding_box().size.Y, 10)
-        for x, y in MAGNET_CENTRES:
-            fitted = Pos(x, y, 0) * cap
-            overlap = jaw & fitted
-            self.assertLess(overlap.volume if overlap else 0, 1e-6)
-            # Pulling the cap straight out catches the bead on the throat.
-            self.assertGreater((jaw & (Pos(0, 0, -.5) * fitted)).volume, .01)
-            # Pushing it further in meets the flange seat.
-            self.assertGreater((jaw & (Pos(0, 0, .2) * fitted)).volume, .01)
-            magnet = Pos(x, y, .9) * Cylinder(
-                4, 2, align=(Align.CENTER, Align.CENTER, Align.MIN))
-            overlap = magnet & fitted
-            self.assertLess(overlap.volume if overlap else 0, 1e-6)
+        for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):
+            captive = knuckles == THREE_KNUCKLES
+            jaw = make_jaw(knuckles, captive_axle=captive)
+            placement = (Pos(0, 0, 0) if captive else
+                         moving_body_location() * magnet_loading_location(True))
+            for x, y in MAGNET_CENTRES:
+                local = Pos(x, y, 0) * cap
+                fitted = placement * local
+                overlap = jaw & fitted
+                self.assertLess(overlap.volume if overlap else 0, 1e-6)
+                # Capture must work for both rear and money-side installation.
+                pulled = placement * Pos(0, 0, -.5) * local
+                pushed = placement * Pos(0, 0, .2) * local
+                for displaced in (pulled, pushed):
+                    collision = jaw & displaced
+                    volume = (sum(shape.volume for shape in collision)
+                              if isinstance(collision, list) else collision.volume)
+                    self.assertGreater(volume, .01)
+                magnet = placement * Pos(x, y, .9) * Cylinder(
+                    4, 2, align=(Align.CENTER, Align.CENTER, Align.MIN))
+                overlap = magnet & fitted
+                self.assertLess(overlap.volume if overlap else 0, 1e-6)
         self.assertEqual(len(make_caps_print_layout().solids()), 6)
         self.assertEqual(len(make_closed_assembly().solids()), 8)
+
+    def test_upright_caps_open_toward_money_and_back_is_solid(self):
+        jaw = make_jaw(TWO_KNUCKLES)
+        for x, y in MAGNET_CENTRES:
+            mouth = moving_body_location() * Pos(x, y, PLATE_THICKNESS - .3) * Cylinder(
+                4, .2, align=(Align.CENTER, Align.CENTER, Align.MIN))
+            back = moving_body_location() * Pos(x, y, .1) * Cylinder(
+                4.4, .3, align=(Align.CENTER, Align.CENTER, Align.MIN))
+            overlap = jaw & mouth
+            self.assertLess(overlap.volume if overlap else 0, 1e-6)
+            self.assertAlmostEqual((jaw & back).volume, back.volume, places=5)
 
     def test_smooth_tips_and_inward_jaw(self):
         for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):

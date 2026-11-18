@@ -9,8 +9,9 @@ The axle is fused to the three-knuckle jaw; the other jaw rotates around it.
 The moving jaw slopes inward by 3 degrees so the smooth tips meet first.
 Gently free the hinge after cooling. Clearances are starting values for PLA+;
 verify with your printer before relying on the clip. Install six 8 x 2 mm
-magnets from the back and retain each with its own small printed snap cap.
-The 0.6 mm PLA clamping skin covers the magnets; no glue is required.
+magnets and retain each with its own small printed snap cap. The flat jaw
+loads from the back; the upright jaw loads from the money-facing side so
+its outer back stays continuous for wallet mounting. No glue is required.
 """
 from pathlib import Path
 from build123d import (
@@ -59,7 +60,7 @@ CAP_SKIRT_TOP = 2.8
 
 
 def make_magnet_cap():
-    """Local rear snap cap: flat outside down, four split skirt fingers up.
+    """Local snap cap: flat outside down, four split skirt fingers up.
 
     The bead flexes through the 9.2 mm throat and catches in its annular
     groove. The central disc traps the magnet without adhesive. Trial-fit
@@ -85,17 +86,25 @@ def make_magnet_cap():
     return cap
 
 
-def cut_magnet_pockets(jaw):
-    """Rear loading: continuous PLA face, recessed cap seat and snap groove."""
+def magnet_loading_location(money_side=False):
+    """Place rear-loading geometry on the money side of the upright body."""
+    return (Pos(0, 0, PLATE_THICKNESS) * Rot(180, 0, 0)
+            if money_side else Pos(0, 0, 0))
+
+
+def cut_magnet_pockets(jaw, *, money_side=False):
+    """Cut cap seats and snap grooves while keeping the opposite face solid."""
+    loading = magnet_loading_location(money_side)
     for x, y in MAGNET_CENTRES:
         for diameter, bottom, depth in (
                 (MAGNET_POCKET_D, -.1, MAGNET_POCKET_DEPTH + .1),
                 (CAP_SEAT_D, -.1, CAP_SEAT_DEPTH + .1),
                 (CAP_GROOVE_D, CAP_GROOVE_BOTTOM,
                  CAP_GROOVE_TOP - CAP_GROOVE_BOTTOM)):
-            jaw = jaw - Pos(x, y, bottom) * Cylinder(
+            cutter = Pos(x, y, bottom) * Cylinder(
                 diameter/2, depth,
                 align=(Align.CENTER, Align.CENTER, Align.MIN))
+            jaw = jaw - loading * cutter
     return jaw
 
 
@@ -141,7 +150,7 @@ def make_jaw(knuckles, *, captive_axle=False):
         amount=PLATE_THICKNESS,
     )
 
-    jaw = cut_magnet_pockets(jaw)
+    jaw = cut_magnet_pockets(jaw, money_side=not captive_axle)
     if not captive_axle:
         jaw = moving_body_location() * jaw
 
@@ -249,7 +258,7 @@ def make_closed_assembly():
         local = Pos(x, y, 0) * cap
         caps.append(local)
         caps.append(Pos(0, 0, 2*PIVOT_Z) * Rot(180, 0, 0)
-                    * moving_body_location() * local)
+                    * moving_body_location() * magnet_loading_location(True) * local)
     return Compound(children=[lower, upper, *caps])
 
 
