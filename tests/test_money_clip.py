@@ -1,4 +1,6 @@
 import unittest
+from itertools import combinations
+from math import radians, sin, cos
 from build123d import Align, Box, GeomType, Plane, Pos, Rot
 from magnetic_money_clip import (
     make_clip, make_jaw, make_print_layout, RADIAL_CLEARANCE,
@@ -8,42 +10,68 @@ from magnetic_money_clip import (
     MAGNET_POCKET_SIZE, pocket_prism,
     CAP_TAB_THICKNESS, CAP_SKIRT_SIZE, CAP_SKIRT_INNER_SIZE,
     make_magnet_cap, make_caps_print_layout, make_closed_assembly,
-    moving_body_location, magnet_loading_location,
+    moving_body_location, magnet_loading_location, make_cash_configuration,
+    SECOND_RADIUS, SECOND_BORE_D, SECOND_PIVOT_X, SECOND_PIVOT_Z,
 )
 
 
 class MoneyClipTests(unittest.TestCase):
+    @staticmethod
+    def overlap_volume(first, second):
+        overlap = first & second
+        return (sum(shape.volume for shape in overlap) if isinstance(overlap, list)
+                else overlap.volume if overlap else 0)
+
     def test_jaws_remain_separate_through_rotation(self):
         for angle in (0, 14, 45, 90, 135, 180):
             with self.subTest(angle=angle):
-                fixed, moving = make_clip(angle)
-                for jaw in (fixed, moving):
-                    self.assertTrue(jaw.is_valid)
-                    self.assertEqual(len(jaw.solids()), 1)
-                overlap = fixed & moving
-                self.assertLess(overlap.volume if overlap else 0, 1e-6)
+                root, closing, wallet = make_clip(angle)
+                for piece in (root, closing, wallet):
+                    self.assertTrue(piece.is_valid)
+                    self.assertEqual(len(piece.solids()), 1)
+                for a, b in combinations((root, closing, wallet), 2):
+                    self.assertLess(self.overlap_volume(a, b), 1e-6)
                 if angle:
-                    self.assertAlmostEqual(fixed.distance_to(moving),
-                                           RADIAL_CLEARANCE, places=5)
+                    self.assertAlmostEqual(root.distance_to(wallet), RADIAL_CLEARANCE, places=5)
 
-    def test_print_layout_has_two_solids_on_bed(self):
+    def test_second_joint_moves_without_collisions(self):
+        self.assertAlmostEqual(SECOND_RADIUS - SECOND_BORE_D/2, .9)
+        for angle in (-20, 0, 20):
+            parts = make_clip(90, angle)
+            for a, b in combinations(parts, 2):
+                self.assertLess(self.overlap_volume(a, b), 1e-6)
+
+    def test_two_joints_hold_closing_plate_parallel_over_cash(self):
+        for angle in (5, 15, 25):
+            root, closing, wallet = make_cash_configuration(angle)
+            for a, b in combinations((root, closing, wallet), 2):
+                self.assertLess(self.overlap_volume(a, b), 1e-6)
+            self.assertAlmostEqual(closing.bounding_box().size.Z, PLATE_THICKNESS, places=5)
+            gap = PLATE_THICKNESS - closing.bounding_box().max.Z
+            expected = SECOND_PIVOT_X*sin(radians(angle)) - (
+                PLATE_THICKNESS-SECOND_PIVOT_Z)*(1-cos(radians(angle)))
+            self.assertAlmostEqual(gap, expected, places=5)
+            self.assertGreater(gap, 0)
+            cash_probe = Pos(35, 0, PLATE_THICKNESS-gap/2) * Box(.5, .5, gap*.5)
+            for piece in (root, closing, wallet):
+                self.assertLess(self.overlap_volume(piece, cash_probe), 1e-6)
+
+    def test_print_layout_has_three_solids_on_bed(self):
         layout = make_print_layout()
-        self.assertEqual(len(layout.solids()), 2)
-        for jaw in layout.solids():
-            self.assertTrue(jaw.is_valid)
-            self.assertAlmostEqual(jaw.bounding_box().min.Z, 0, places=5)
-        flat, upright = layout.solids()
-        self.assertAlmostEqual(flat.bounding_box().size.Z, 2*PLATE_THICKNESS, places=5)
-        self.assertGreater(upright.bounding_box().size.X, 2*PLATE_THICKNESS)
-        self.assertGreater(upright.bounding_box().max.Z, TIP_X)
-        # Both jaws need actual flat bed contact, not a tangent cylinder edge.
-        bed_slice = Pos(0, 0, 0) * Box(100, 100, .01,
+        self.assertEqual(len(layout.solids()), 3)
+        root, closing, wallet = layout.solids()
+        self.assertAlmostEqual(root.bounding_box().size.Z, 2*PLATE_THICKNESS, places=5)
+        self.assertAlmostEqual(closing.bounding_box().size.Z, PLATE_THICKNESS, places=5)
+        self.assertGreater(wallet.bounding_box().max.Z, TIP_X)
+        bed_slice = Pos(30, 0, 0) * Box(100, 100, .01,
                             align=(Align.CENTER, Align.CENTER, Align.MIN))
-        for jaw in layout.solids():
-            self.assertGreater((jaw & bed_slice).volume, .05)
+        for piece in layout.solids():
+            self.assertTrue(piece.is_valid)
+            self.assertAlmostEqual(piece.bounding_box().min.Z, 0, places=5)
+            self.assertGreater((piece & bed_slice).volume, .05)
 
     def test_upright_body_bottom_has_slopes_instead_of_flat_ledges(self):
-        _, jaw = make_clip(90)
+        _, _, jaw = make_clip(90)
         bottom_faces = [face for face in jaw.faces()
                         if face.geom_type == GeomType.PLANE
                         and 8 < face.center().Z < 16
@@ -55,7 +83,7 @@ class MoneyClipTests(unittest.TestCase):
         self.assertTrue(jaw.is_valid)
 
     def test_magnet_pockets_keep_opposite_faces_continuous(self):
-        self.assertEqual(len(MAGNET_CENTRES), 3)
+        self.assertEqual(len(MAGNET_CENTRES), 6)
         self.assertEqual((MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS), (10, 5, 2))
         self.assertAlmostEqual(PLATE_THICKNESS - MAGNET_POCKET_DEPTH, MAGNET_SKIN)
         for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):
@@ -67,10 +95,11 @@ class MoneyClipTests(unittest.TestCase):
                 skin = Pos(x, y, MAGNET_POCKET_DEPTH + .1) * Box(
                     10.6, 5.6, MAGNET_SKIN - .2,
                     align=(Align.CENTER, Align.CENTER, Align.MIN))
+                placement = magnet_loading_location(True)
                 if knuckles == TWO_KNUCKLES:
-                    placement = moving_body_location() * magnet_loading_location(True)
-                    magnet = placement * magnet
-                    skin = placement * skin
+                    placement = moving_body_location() * placement
+                magnet = placement * magnet
+                skin = placement * skin
                 overlap = jaw & magnet
                 self.assertLess(overlap.volume if overlap else 0, 1e-6)
                 self.assertAlmostEqual((jaw & skin).volume, skin.volume, places=5)
@@ -84,8 +113,9 @@ class MoneyClipTests(unittest.TestCase):
         for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):
             captive = knuckles == THREE_KNUCKLES
             jaw = make_jaw(knuckles, captive_axle=captive)
-            placement = (Pos(0, 0, 0) if captive else
-                         moving_body_location() * magnet_loading_location(True))
+            placement = magnet_loading_location(True)
+            if not captive:
+                placement = moving_body_location() * placement
             for x, y in MAGNET_CENTRES:
                 local = Pos(x, y, 0) * cap
                 fitted = placement * local
@@ -104,8 +134,8 @@ class MoneyClipTests(unittest.TestCase):
                     align=(Align.CENTER, Align.CENTER, Align.MIN))
                 overlap = magnet & fitted
                 self.assertLess(overlap.volume if overlap else 0, 1e-6)
-        self.assertEqual(len(make_caps_print_layout().solids()), 6)
-        self.assertEqual(len(make_closed_assembly().solids()), 8)
+        self.assertEqual(len(make_caps_print_layout().solids()), 12)
+        self.assertEqual(len(make_closed_assembly().solids()), 15)
 
     def test_cap_tabs_have_printable_wall_thickness(self):
         cap = make_magnet_cap()
@@ -139,7 +169,7 @@ class MoneyClipTests(unittest.TestCase):
         for face in roof_faces:
             self.assertLessEqual(face.normal_at().Z, 2**-.5 + 1e-6)
             self.assertGreater(face.normal_at().Z, .7)
-        self.assertEqual(len({x for x, _ in MAGNET_CENTRES}), 1)
+        self.assertEqual(len({x for x, _ in MAGNET_CENTRES}), 2)
         self.assertEqual(len({y for _, y in MAGNET_CENTRES}), 3)
 
     def test_upright_caps_open_toward_money_and_back_is_solid(self):
@@ -153,27 +183,26 @@ class MoneyClipTests(unittest.TestCase):
             self.assertLess(overlap.volume if overlap else 0, 1e-6)
             self.assertAlmostEqual((jaw & back).volume, back.volume, places=5)
 
-    def test_smooth_tips_and_inward_jaw(self):
+    def test_smooth_tips_and_parallel_jaws(self):
         for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):
             jaw = make_jaw(knuckles, captive_axle=knuckles == THREE_KNUCKLES)
-            for x in (39, 40):
+            for x in (TIP_X - 1.8, TIP_X - 1.2):
                 probe = Pos(x, 0, PLATE_THICKNESS - .2) * Box(.3, 10, .1)
                 if knuckles == TWO_KNUCKLES:
                     probe = moving_body_location() * probe
                 self.assertAlmostEqual((jaw & probe).volume, probe.volume, places=5)
-        fixed, moving = make_clip(0)
-        self.assertAlmostEqual(fixed.distance_to(moving), 0, places=5)
-        root_gap = Pos(10, 0, PLATE_THICKNESS + .4) * Box(.4, 4, .4)
-        overlap = moving & root_gap
-        self.assertLess(overlap.volume if overlap else 0, 1e-6)
-        tip_contact = Pos(40, 0, PLATE_THICKNESS + .3) * Box(.4, 4, .2)
+        root, closing, moving = make_clip(0)
+        self.assertAlmostEqual(closing.distance_to(moving), 0, places=5)
+        root_contact = Pos(10, 0, PLATE_THICKNESS + .4) * Box(.4, 4, .4)
+        self.assertAlmostEqual((moving & root_contact).volume, root_contact.volume, places=5)
+        tip_contact = Pos(TIP_X - 1.2, 0, PLATE_THICKNESS + .3) * Box(.4, 4, .2)
         self.assertAlmostEqual((moving & tip_contact).volume, tip_contact.volume, places=5)
         # Closing past tip contact must be stopped by the jaw, not the hinge.
-        fixed, moving = make_clip(-1)
-        self.assertGreater((fixed & moving).volume, .1)
+        root, closing, moving = make_clip(-1)
+        self.assertGreater(self.overlap_volume(closing, moving), .1)
 
     def test_curved_hinge_underside_reaches_bed_with_support_slope(self):
-        _, moving = make_clip(90)
+        _, _, moving = make_clip(90)
         for y in (-6, 6):
             section = moving.intersect(Plane.XZ.offset(-y))
             curves = [edge for edge in section.edges()

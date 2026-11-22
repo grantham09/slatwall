@@ -84,96 +84,75 @@ off the hook surfaces. Reduce `snap_peak` or adjust tongue thickness/length
 if the snap needs excessive force. CAD checks verify solid geometry, not
 release force, fatigue, load capacity, or compatibility with a particular wall.
 
-## Print-in-place magnetic money clip
+## Articulated magnetic money clip
 
 ```sh
 python magnetic_money_clip.py
 python magnetic_money_clip.py --view
 python magnetic_money_clip.py --view --view-state closed
+python magnetic_money_clip.py --view --view-state cash
 ```
 
 Viewing requires `ocp-vscode` and the VS Code OCP CAD Viewer extension.
-The print view displays the exported STEP, including six small caps beside
-the hinged jaws. The closed view includes the caps installed in the jaws.
+The clip now has a **61.8 mm reach**, about 1.5 times the previous 41.2 mm,
+and **two rows of three 10 × 5 × 2 mm bar magnets per jaw** (12 magnets total).
+The bars are parallel; row centres are at 27 and 49 mm, with 9 mm spacing
+across the width. All pockets load from the money-facing side, including
+from the top of the flat closing plate. The wallet-facing back stays smooth.
 
-The clip uses **six rectangular 10 × 5 × 2 mm magnets**, three per jaw.
-Each magnet has its own **20.3 × 7.65 mm pointed snap-in cap**;
-there is no cover spanning the whole face. The three magnets are parallel and aligned side by side across each jaw,
-with all centres 28.0 mm from the hinge axis. Their 9.0 mm centre spacing
-leaves 1.1 mm between adjacent cap seats. The flat jaw loads from the back, leaving a continuous **0.6 mm PLA
-clamping skin**. The upright jaw loads from the **money-facing side**, with
-flush cap faces; its opposite, wallet-facing back retains a continuous
-**0.6 mm PLA skin** without pocket openings. The jaw remains inclined by
-3 degrees. This provides a smooth mounting surface; no wallet fasteners
-or attachment hardware are included. No magnet adhesive is needed.
-Each jaw is **3.6 mm thick**, including the recessed cap seat. Magnet length
-(10 mm) runs along the jaw, and width (5 mm) runs across it. The skirt has
-a 10.3 × 5.3 mm interior for installation clearance. The skirt walls are
-**0.9 mm thick** (previously 0.35 mm), intended for a typical 0.4 mm nozzle,
-with 0.8 mm split slots. The wider pockets match these thicker tabs; print
-the updated jaws and caps together, as the old pockets will not fit them.
-The snap interference is reduced to 0.10 mm per side to help seating the
-thicker tabs. The outer snap bead
-catches in a matching pointed groove. Each profile has a rectangular magnet
-space with triangular ends: on the upright wallet jaw these become
-45-degree cavity roofs rather than a full-width flat ceiling. The pockets
-move 4 mm toward the hinge to keep their pointed ends inside the jaw.
-Print the new jaws and caps together; the previous rectangular parts are
-not interchangeable with these pointed parts.
-The added plastic between magnets will reduce attraction compared with
-exposed magnets; holding force needs a physical trial.
+The jaws are **parallel**, with no inward cant. A **second captive hinge at
+12 mm from the original pivot** divides the bottom jaw into a short root link
+and a magnet-bearing closing plate. Together, the two joints let the closing
+plate lie parallel against different money thicknesses. The extra hinge is
+before the magnet pockets; adding joints between the current pocket rows
+would require more space and reduce the uninterrupted clamping area.
+
+The `cash` viewer state shows a 15-degree root rotation and the opposite
+rotation at the second joint: about **3.0 mm of parallel clearance** for money.
+It is an inspection STEP of the three articulated pieces without caps, not
+a printing orientation. The `closed` state shows the empty assembly with
+all 12 caps installed.
+
+Jaw thickness remains **3.6 mm**. The existing stack contains a 2 mm magnet,
+0.6 mm protective back skin, 0.8 mm cap flange and installation clearance;
+reducing thickness would require different retainers or a weaker skin.
+Each magnet has its own pointed snap cap (20.3 × 7.65 mm overall), with
+0.9 mm walls, 0.8 mm split slots and 0.10 mm snap interference per side.
+The 10.3 × 5.3 mm skirt interior allows installation clearance. Trial-fit one
+cap before assembling all 12; no glue is required for magnet retention.
 
 Exports into `output/`:
 
-- `money_clip_print_in_place.stl` and `.step`: two captive hinged jaws plus
-  six loose caps, already separated on the bed.
-- `money_clip_magnet_cap.stl` and `.step`: a single spare cap.
-- `money_clip_closed.step`: assembled jaws and installed caps for inspection.
+- `money_clip_print_in_place.stl` and `.step`: three captive articulated
+  pieces plus 12 loose caps, all in their printing positions.
+- `money_clip_magnet_cap.stl` and `.step`: one spare cap.
+- `money_clip_closed.step`: assembled empty clip with caps installed.
+- `money_clip_cash.step`: parallel-jaw articulation example without caps.
 
-Print the main STL as oriented: one jaw flat on the bed, the other upright
-at 90 degrees, and the cap flanges flat with their split skirts pointing up.
-The cap's gradual ridge remains below a 45-degree outward slope, including
-its diagonal faces. Print caps flange-down as exported. Their 0.9 mm walls
-and open slots remain suitable for a typical 0.4 mm nozzle; confirm the toolpaths
-in your slicer. The pointed roofs reduce support needs on the upright jaw
-without changing its wallet-printing orientation. The lower jaw still has
-short pocket-roof bridges and the hinge still has a horizontal bore/pin:
-inspect those bridges and groove details rather than enabling supports in
-the hinge or snap grooves. No support-free physical print is verified here.
-Keep supports and brim material out of hinge clearances, snap grooves and
-cap slots. A brim can help upright-jaw adhesion. The 2.4 mm axle is printed
-integrally; no filament pin or hinge assembly is needed. Hinge clearances
-are 0.30 mm radially and 0.35 mm between knuckle ends.
+Print the main STL **as oriented**: the wallet jaw upright at 90 degrees,
+root link and closing plate flat, caps flange-down with split skirts up.
+The primary hinge retains its 2.4 mm printed axle. The second hinge fits
+within the plate thickness: 3.6 mm barrel diameter, **1.2 mm printed axle**,
+1.8 mm bore and **0.9 mm bearing walls**. Both joints have 0.30 mm radial
+and 0.35 mm axial clearances. The smaller axle must be physically tested
+for strength and cycling before wallet use; CAD does not establish durability.
 
-After cooling, gently free the hinge. Check polarity before installing any
-caps: opposing magnets must attract. Put each magnet against the blind
-pocket floor, then press its cap in from the appropriate loading side
-(back of the flat jaw, money-facing side of the upright jaw)
-until the flange seats flush and the split skirt's bead catches in the groove.
-The skirt surrounds the magnet; the central plate keeps it from falling out.
-Trial-fit one cap first. Snap fit and retention in PLA+ depend on calibration
-and must be physically checked; these caps are not designed for frequent
-removal.
+Pointed pocket roofs close at 45 degrees on the upright jaw. Its lower
+body edge has four slopes about 42 degrees from vertical, eliminating the
+old flat underside ledges. The curved hinge transition and flat bed lands
+remain. Caps print flat with gradual ridges below 45 degrees. Horizontal
+hinge bores/pins and the flat plate's pocket roofs still contain short bridges:
+inspect those in the slicer and keep supports and brim out of hinge gaps,
+snap grooves and cap slots. A brim can help the upright jaw. Support-free
+printing has not been physically verified.
 
-The jaws have smooth tips. The moving jaw slopes inward by 3 degrees so
-the tips contact first, leaving roughly 1.9 mm clearance near the body root.
-Its magnet pockets follow the inclined face. The upright jaw's underside
-curves continuously down to its flat bed land, with outward slope within
-45 degrees of vertical. Inspect the remaining horizontal axle bridges, flat-jaw pocket roofs
-and groove details in your slicer before printing.
+After cooling, gently free both hinges. Confirm magnet polarity before
+pressing each cap flush from the money-facing side. Attraction loads these
+caps outward, so test pull-out retention with the actual magnets before
+attaching the back to a wallet. Wallet attachment hardware is not included.
+Printed snap force, grip strength and fatigue life all need physical testing.
 
-Geometry tests check valid separate solids, sampled hinge motion, smooth
-tip contact, continuous skins, magnet/cap fit and mechanical cap capture.
-On the upright jaw, magnetic attraction loads the caps outward toward the
-money, so physical pull-out testing with your magnets is particularly
-important before attaching it to a wallet. Geometry tests do not establish
-printed snap force, holding force or fatigue life. The gentler cap ramp
-changes snap behavior, so trial-fit the updated cap before full assembly.
-
-The upright jaw's lower body edge now rises from each hinge web toward the
-outside corners and toward the centre gap. These four faces are about
-42 degrees from vertical in the actual 90-degree print orientation, replacing
-three unsupported horizontal ledges. The curved side transition and flat
-bed lands remain. The waist between the tabs forms a shallow inverted V;
-the outer corners are similarly swept upward. This changes the jaw outline
-near the hinge, not its wallet-mounting face or magnet positions.
+Geometry tests check separate valid solids, both hinges' sampled motion,
+parallel cash configurations, bed contact, pocket/cap fit, mechanical cap
+capture, printable wall thickness, and roof slopes. Print the updated jaws
+and caps together; previous clip bodies are not compatible with this revision.

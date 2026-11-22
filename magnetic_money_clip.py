@@ -6,11 +6,11 @@ Print output/money_clip_print_in_place.stl as oriented, with no supports
 inside the hinge. One jaw lies flat and the wallet-side jaw stands upright
 at 90 degrees, ready to join an upright wallet. The hinge axis is horizontal.
 The axle is fused to the three-knuckle jaw; the other jaw rotates around it.
-The moving jaw slopes inward by 3 degrees so the smooth tips meet first.
+The jaws close parallel; a second joint in the flat jaw adapts to money thickness.
 Gently free the hinge after cooling. Clearances are starting values for PLA+;
-verify with your printer before relying on the clip. Install six 10 x 5 x 2 mm
-magnets and retain each with its own small printed snap cap. The flat jaw
-loads from the back; the upright jaw loads from the money-facing side so
+verify with your printer before relying on the clip. Install twelve 10 x 5 x 2 mm
+magnets in two rows per jaw, each with its own small snap cap. Both jaws
+load from their money-facing sides (top of the flat jaw), so
 its outer back stays continuous for wallet mounting. No glue is required.
 """
 from pathlib import Path
@@ -25,13 +25,13 @@ from math import radians, cos, tan
 # ------- User-adjustable parameters (millimetres) -------
 WIDTH = 28.0
 BODY_START_X = 5.3
-TIP_X = 41.2
+TIP_X = 61.8  # About 1.5 times the previous 41.2 mm reach.
 CORNER_RADIUS = 3.0
 PLATE_THICKNESS = 3.6
-JAW_ANGLE = 3.0  # Moving jaw converges toward the straight jaw at its tip.
+JAW_ANGLE = 0.0  # Both clamping faces are parallel; the extra joint adapts to cash.
 HINGE_BLEND_RADIUS = 0.9
 BED_LAND_RADIUS = 0.3
-UPRIGHT_ROOT_RISE = 1.1  # Rise/run across jaw width; allows for the 3-degree tilt.
+UPRIGHT_ROOT_RISE = 1.1  # Rise/run across the upright jaw width.
 
 # The tips meet at closure; the moving jaw has clearance toward its root.
 # The hinge is only a rotational joint: no flexing of printed jaws.
@@ -42,6 +42,15 @@ AXLE_D = 2.4
 RADIAL_CLEARANCE = 0.30
 PIN_HOLE_D = AXLE_D + 2 * RADIAL_CLEARANCE
 
+# Second captive hinge, before the magnet pockets. Its barrel stays within
+# the 3.6 mm plate thickness so neither face gets a raised lump.
+SECOND_PIVOT_X = 12.0
+SECOND_PIVOT_Z = PLATE_THICKNESS/2
+SECOND_RADIUS = 1.8
+SECOND_AXLE_D = 1.2
+SECOND_BORE_D = SECOND_AXLE_D + 2*RADIAL_CLEARANCE
+SECOND_SHOULDER = SECOND_RADIUS + .4
+
 MAGNET_LENGTH = 10.0  # Along the jaw (X).
 MAGNET_WIDTH = 5.0    # Across the jaw (Y).
 MAGNET_SIZE = (MAGNET_LENGTH, MAGNET_WIDTH)
@@ -49,7 +58,8 @@ MAGNET_THICKNESS = 2.0
 MAGNET_SKIN = 0.6
 MAGNET_POCKET_SIZE = (12.3, 7.3)  # Includes room for the split cap skirt.
 MAGNET_POCKET_DEPTH = PLATE_THICKNESS - MAGNET_SKIN
-MAGNET_CENTRES = ((28.0, -9.0), (28.0, 0.0), (28.0, 9.0))
+MAGNET_ROWS = (27.0, 49.0)
+MAGNET_CENTRES = tuple((x, y) for x in MAGNET_ROWS for y in (-9.0, 0.0, 9.0))
 CAP_SEAT_SIZE = (12.9, 7.9)
 CAP_SEAT_DEPTH = 0.8
 CAP_GROOVE_SIZE = (12.7, 7.7)
@@ -152,7 +162,7 @@ def upright_root_mask():
 
 
 def moving_body_location():
-    """Incline the moving body about its inner tip; leave hinge axis unchanged."""
+    """Body placement about its inner tip; zero cant keeps clamping faces parallel."""
     return (Pos(TIP_X, 0, PLATE_THICKNESS) * Rot(0, -JAW_ANGLE, 0)
             * Pos(-TIP_X, 0, -PLATE_THICKNESS))
 
@@ -190,7 +200,7 @@ def make_jaw(knuckles, *, captive_axle=False):
 
     if not captive_axle:
         jaw = jaw & upright_root_mask()
-    jaw = cut_magnet_pockets(jaw, money_side=not captive_axle)
+    jaw = cut_magnet_pockets(jaw, money_side=True)
     if not captive_axle:
         jaw = moving_body_location() * jaw
 
@@ -265,18 +275,66 @@ def make_jaw(knuckles, *, captive_axle=False):
     return round_hinge_transitions(jaw, captive_axle)
 
 
-def make_clip(open_angle=90.0):
-    """Return the two independent jaws; 0 degrees is closed.
+def split_bottom_jaw(jaw):
+    """Two rigid flat pieces joined by a captive hinge ahead of the magnets."""
+    def portion(low, high):
+        return jaw & (Pos((low+high)/2, 0, 4) * Box(high-low, WIDTH+4, 20))
+    root = portion(-10, SECOND_PIVOT_X - SECOND_SHOULDER)
+    closing = portion(SECOND_PIVOT_X + SECOND_SHOULDER, TIP_X + 1)
+    for intervals, is_root in ((THREE_KNUCKLES, True), (TWO_KNUCKLES, False)):
+        piece = root if is_root else closing
+        for low, high in intervals:
+            middle, width = (low+high)/2, high-low
+            barrel = Pos(SECOND_PIVOT_X, middle, SECOND_PIVOT_Z) * Rot(90, 0, 0) * Cylinder(
+                SECOND_RADIUS, width, align=(Align.CENTER, Align.CENTER, Align.CENTER))
+            end = (SECOND_PIVOT_X - SECOND_SHOULDER - .3 if is_root
+                   else SECOND_PIVOT_X + SECOND_SHOULDER + .3)
+            web = Pos((end+SECOND_PIVOT_X)/2, middle, 0) * Box(
+                abs(end-SECOND_PIVOT_X), width, PLATE_THICKNESS,
+                align=(Align.CENTER, Align.CENTER, Align.MIN))
+            land = Pos(SECOND_PIVOT_X, middle, 0) * Box(
+                2.8, width, .6, align=(Align.CENTER, Align.CENTER, Align.MIN))
+            piece = piece.fuse(barrel, web, land)
+        pin = Pos(SECOND_PIVOT_X, 0, SECOND_PIVOT_Z) * Rot(90, 0, 0) * Cylinder(
+            (SECOND_AXLE_D if is_root else SECOND_BORE_D)/2,
+            WIDTH if is_root else WIDTH+2,
+            align=(Align.CENTER, Align.CENTER, Align.CENTER))
+        if is_root:
+            root = piece.fuse(pin)
+        else:
+            closing = piece - pin
+    return root, closing
 
-    The lower jaw includes its axle. Rotate the upper about Y at the pivot,
-    preserving the bore alignment. 90 degrees is the printing position.
+
+def main_hinge_location(angle):
+    return Pos(0, 0, PIVOT_Z) * Rot(0, angle, 0) * Pos(0, 0, -PIVOT_Z)
+
+
+def bottom_hinge_location(angle):
+    return (Pos(SECOND_PIVOT_X, 0, SECOND_PIVOT_Z) * Rot(0, angle, 0)
+            * Pos(-SECOND_PIVOT_X, 0, -SECOND_PIVOT_Z))
+
+
+def make_clip(open_angle=90.0, bottom_angle=0.0):
+    """Return root link, closing plate, wallet jaw; both joint angles in degrees.
+
+    Print with the wallet upright at 90 degrees and the closing plate flat.
+    The second joint lets the closing plate align with the wallet jaw as
+    the short root link swings around different money thicknesses.
     """
-    lower = make_jaw(THREE_KNUCKLES, captive_axle=True)
-    upper = make_jaw(TWO_KNUCKLES)
-    upper = Pos(0, 0, 2*PIVOT_Z) * Rot(180, 0, 0) * upper
-    upper = (Pos(PIVOT_X, 0, PIVOT_Z) * Rot(0, -open_angle, 0)
-             * Pos(-PIVOT_X, 0, -PIVOT_Z) * upper)
-    return lower, upper
+    root, closing = split_bottom_jaw(make_jaw(THREE_KNUCKLES, captive_axle=True))
+    closing = bottom_hinge_location(bottom_angle) * closing
+    wallet = make_jaw(TWO_KNUCKLES)
+    wallet = Pos(0, 0, 2*PIVOT_Z) * Rot(180, 0, 0) * wallet
+    wallet = main_hinge_location(-open_angle) * wallet
+    return root, closing, wallet
+
+
+def make_cash_configuration(root_angle):
+    """Demonstrate parallel faces over cash: equal opposite joint rotations."""
+    root, closing, wallet = make_clip(0, -root_angle)
+    movement = main_hinge_location(root_angle)
+    return movement * root, movement * closing, wallet
 
 
 def make_print_layout():
@@ -286,20 +344,20 @@ def make_print_layout():
 
 def make_caps_print_layout():
     cap = make_magnet_cap()
-    return Compound(children=[Pos(55 + 14*i, y, 0) * Rot(0, 0, 90) * cap
-                              for i in range(3) for y in (-12, 12)])
+    return Compound(children=[Pos(TIP_X + 15 + 14*i, y, 0) * Rot(0, 0, 90) * cap
+                              for i in range(len(MAGNET_CENTRES)) for y in (-12, 12)])
 
 
 def make_closed_assembly():
-    lower, upper = make_clip(0)
+    root, closing, upper = make_clip(0)
     cap = make_magnet_cap()
     caps = []
     for x, y in MAGNET_CENTRES:
         local = Pos(x, y, 0) * cap
-        caps.append(local)
+        caps.append(magnet_loading_location(True) * local)
         caps.append(Pos(0, 0, 2*PIVOT_Z) * Rot(180, 0, 0)
                     * moving_body_location() * magnet_loading_location(True) * local)
-    return Compound(children=[lower, upper, *caps])
+    return Compound(children=[root, closing, upper, *caps])
 
 
 def main():
@@ -307,7 +365,7 @@ def main():
     parser.add_argument('--output', type=Path, default=Path('output'))
     parser.add_argument('--view', action='store_true',
                         help='Show the exported STEP in VS Code OCP CAD Viewer (requires ocp-vscode)')
-    parser.add_argument('--view-state', choices=('print', 'closed'), default='print',
+    parser.add_argument('--view-state', choices=('print', 'closed', 'cash'), default='print',
                         help='Assembly to display with --view (default: print)')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
@@ -318,6 +376,8 @@ def main():
     export_step(make_magnet_cap(), args.output / 'money_clip_magnet_cap.step')
     export_step(make_closed_assembly(),
                 args.output / 'money_clip_closed.step')
+    export_step(Compound(children=list(make_cash_configuration(15))),
+                args.output / 'money_clip_cash.step')
     print(f'Exported print-in-place clip to {args.output}')
     print('Print as oriented: wallet-side jaw upright at 90 degrees; caps flange-down.')
     if args.view:
@@ -327,8 +387,9 @@ def main():
             parser.exit(1, 'Exports saved. Viewing requires ocp-vscode: '
                         'python -m pip install ocp-vscode\n')
         from build123d import import_step
-        filename = ('money_clip_closed.step' if args.view_state == 'closed'
-                    else 'money_clip_print_in_place.step')
+        filename = {'closed': 'money_clip_closed.step',
+                    'cash': 'money_clip_cash.step',
+                    'print': 'money_clip_print_in_place.step'}[args.view_state]
         exported = import_step(args.output / filename)
         show(exported, names=[f'Money clip — {args.view_state}'])
 
