@@ -1,10 +1,11 @@
 import unittest
-from build123d import Align, Box, GeomType, Plane, Pos
+from build123d import Align, Box, GeomType, Plane, Pos, Rot
 from magnetic_money_clip import (
     make_clip, make_jaw, make_print_layout, RADIAL_CLEARANCE,
     PLATE_THICKNESS, TIP_X, THREE_KNUCKLES, TWO_KNUCKLES,
     MAGNET_CENTRES, MAGNET_SKIN, MAGNET_POCKET_DEPTH,
-    MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS, CAP_FLANGE_SIZE,
+    MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS, MAGNET_SIZE, CAP_FLANGE_SIZE,
+    MAGNET_POCKET_SIZE, pocket_prism,
     CAP_TAB_THICKNESS, CAP_SKIRT_SIZE, CAP_SKIRT_INNER_SIZE,
     make_magnet_cap, make_caps_print_layout, make_closed_assembly,
     moving_body_location, magnet_loading_location,
@@ -49,7 +50,7 @@ class MoneyClipTests(unittest.TestCase):
             jaw = make_jaw(knuckles, captive_axle=knuckles == THREE_KNUCKLES)
             for x, y in MAGNET_CENTRES:
                 magnet = Pos(x, y, .9) * Box(
-                    MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS,
+                    *MAGNET_SIZE, MAGNET_THICKNESS,
                     align=(Align.CENTER, Align.CENTER, Align.MIN))
                 skin = Pos(x, y, MAGNET_POCKET_DEPTH + .1) * Box(
                     10.6, 5.6, MAGNET_SKIN - .2,
@@ -66,8 +67,8 @@ class MoneyClipTests(unittest.TestCase):
         cap = make_magnet_cap()
         self.assertTrue(cap.is_valid)
         self.assertEqual(len(cap.solids()), 1)
-        self.assertAlmostEqual(cap.bounding_box().size.X, CAP_FLANGE_SIZE[0])
-        self.assertAlmostEqual(cap.bounding_box().size.Y, CAP_FLANGE_SIZE[1])
+        self.assertAlmostEqual(cap.bounding_box().size.X, sum(CAP_FLANGE_SIZE), places=5)
+        self.assertAlmostEqual(cap.bounding_box().size.Y, CAP_FLANGE_SIZE[1], places=5)
         for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):
             captive = knuckles == THREE_KNUCKLES
             jaw = make_jaw(knuckles, captive_axle=captive)
@@ -87,7 +88,7 @@ class MoneyClipTests(unittest.TestCase):
                               if isinstance(collision, list) else collision.volume)
                     self.assertGreater(volume, .01)
                 magnet = placement * Pos(x, y, .9) * Box(
-                    MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS,
+                    *MAGNET_SIZE, MAGNET_THICKNESS,
                     align=(Align.CENTER, Align.CENTER, Align.MIN))
                 overlap = magnet & fitted
                 self.assertLess(overlap.volume if overlap else 0, 1e-6)
@@ -102,8 +103,8 @@ class MoneyClipTests(unittest.TestCase):
         # Check actual wall material away from slots, below the snap ridge.
         for sign in (-1, 1):
             probes = (
-                Pos(sign*5.6, 1.2, 1.4) * Box(.85, 1, .6),
                 Pos(2, sign*3.1, 1.4) * Box(1, .85, .6),
+                Pos(6.9, sign*1.8, 1.4) * Box(.6, .6, .6),
             )
             for probe in probes:
                 self.assertAlmostEqual((cap & probe).volume, probe.volume, places=5)
@@ -117,6 +118,17 @@ class MoneyClipTests(unittest.TestCase):
         for face in downward_faces:
             # Face slope from vertical <= 45 degrees; exclude the bed face.
             self.assertLessEqual(-face.normal_at().Z, 2**-.5 + 1e-6)
+
+    def test_wallet_jaw_pocket_roofs_are_sloped_in_upright_orientation(self):
+        orientation = Rot(0, -90, 0) * Rot(180, 0, 0) * moving_body_location()
+        cutter = orientation * pocket_prism(MAGNET_POCKET_SIZE, 3)
+        roof_faces = [face for face in cutter.faces() if face.normal_at().Z > .1]
+        self.assertEqual(len(roof_faces), 2)
+        for face in roof_faces:
+            self.assertLessEqual(face.normal_at().Z, 2**-.5 + 1e-6)
+            self.assertGreater(face.normal_at().Z, .7)
+        self.assertEqual(len({x for x, _ in MAGNET_CENTRES}), 1)
+        self.assertEqual(len({y for _, y in MAGNET_CENTRES}), 3)
 
     def test_upright_caps_open_toward_money_and_back_is_solid(self):
         jaw = make_jaw(TWO_KNUCKLES)

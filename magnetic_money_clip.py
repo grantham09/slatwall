@@ -3,8 +3,8 @@
 Run: .venv/bin/python magnetic_money_clip.py
 View exported STEP in VS Code OCP CAD Viewer: python magnetic_money_clip.py --view
 Print output/money_clip_print_in_place.stl as oriented, with no supports
-inside the hinge. One jaw lies flat and the other stands upright at 90 degrees;
-the hinge axis is horizontal. Use a brim if needed, keeping it out of hinge gaps.
+inside the hinge. One jaw lies flat and the wallet-side jaw stands upright
+at 90 degrees, ready to join an upright wallet. The hinge axis is horizontal.
 The axle is fused to the three-knuckle jaw; the other jaw rotates around it.
 The moving jaw slopes inward by 3 degrees so the smooth tips meet first.
 Gently free the hinge after cooling. Clearances are starting values for PLA+;
@@ -15,7 +15,7 @@ its outer back stays continuous for wallet mounting. No glue is required.
 """
 from pathlib import Path
 from build123d import (
-    Align, Axis, Box, Compound, Cylinder, Plane, Pos, RectangleRounded, Rot,
+    Align, Axis, Box, Compound, Cylinder, Plane, Polygon, Pos, RectangleRounded, Rot,
     BuildSketch, BuildLine, Bezier, Polyline, make_face,
     extrude, fillet, loft, export_step, export_stl,
 )
@@ -43,11 +43,12 @@ PIN_HOLE_D = AXLE_D + 2 * RADIAL_CLEARANCE
 
 MAGNET_LENGTH = 10.0  # Along the jaw (X).
 MAGNET_WIDTH = 5.0    # Across the jaw (Y).
+MAGNET_SIZE = (MAGNET_LENGTH, MAGNET_WIDTH)
 MAGNET_THICKNESS = 2.0
 MAGNET_SKIN = 0.6
 MAGNET_POCKET_SIZE = (12.3, 7.3)  # Includes room for the split cap skirt.
 MAGNET_POCKET_DEPTH = PLATE_THICKNESS - MAGNET_SKIN
-MAGNET_CENTRES = ((32.0, -9.0), (32.0, 0.0), (32.0, 9.0))
+MAGNET_CENTRES = ((28.0, -9.0), (28.0, 0.0), (28.0, 9.0))
 CAP_SEAT_SIZE = (12.9, 7.9)
 CAP_SEAT_DEPTH = 0.8
 CAP_GROOVE_SIZE = (12.7, 7.7)
@@ -63,33 +64,44 @@ CAP_BEAD_ROOT_Z = 2.0
 CAP_BEAD_PEAK_Z = 2.5
 
 
-def rounded_prism(size, depth, radius=.3):
-    return extrude(RectangleRounded(*size, radius), amount=depth)
+def pocket_profile(size):
+    """Pointed ends along X become 45-degree roofs on the upright jaw.
+
+    Size gives the magnet's central rectangular space. Each X end adds a
+    half-height triangular tip; the top cavity closes gradually instead of
+    bridging its full width. The lower, flat jaw retains short roof bridges.
+    """
+    w, h = size
+    return Polygon((-w/2, -h/2), (w/2, -h/2), ((w+h)/2, 0),
+                   (w/2, h/2), (-w/2, h/2), (-(w+h)/2, 0), align=None)
+
+
+def pocket_prism(size, depth):
+    return extrude(pocket_profile(size), amount=depth)
 
 
 def make_magnet_cap():
-    """Small rectangular snap cap for one 10 x 5 x 2 mm magnet.
+    """Pointed local snap cap for one 10 x 5 x 2 mm magnet.
 
-    Print flange down, skirt up. The ridge grows 0.20 mm outward over
-    0.5 mm of height (21.8 degrees from vertical), avoiding the previous
-    steep underside. Four slots let the skirt flex through the throat;
-    the bead catches in the groove. Trial-fit one cap before fitting
-    all six; printed PLA snap retention is not established by CAD checks.
+    Print flange down, skirt up. The 0.9 mm walls and gradual snap ridge
+    avoid thin features and steep cap overhangs. Four open slots split the
+    skirt; its bead catches in the matching pointed groove. Physical snap
+    force and retention still need a trial with your print settings.
     """
-    flange = rounded_prism(CAP_FLANGE_SIZE, CAP_SEAT_DEPTH, .35)
-    skirt = Pos(0, 0, CAP_SEAT_DEPTH) * rounded_prism(
+    flange = pocket_prism(CAP_FLANGE_SIZE, CAP_SEAT_DEPTH)
+    skirt = Pos(0, 0, CAP_SEAT_DEPTH) * pocket_prism(
         CAP_SKIRT_SIZE, CAP_SKIRT_TOP - CAP_SEAT_DEPTH)
     bead = loft([
-        Pos(0, 0, CAP_BEAD_ROOT_Z) * RectangleRounded(*CAP_SKIRT_SIZE, .3),
-        Pos(0, 0, CAP_BEAD_PEAK_Z) * RectangleRounded(*CAP_BEAD_SIZE, .5),
-        Pos(0, 0, CAP_SKIRT_TOP) * RectangleRounded(*CAP_SKIRT_SIZE, .3),
+        Pos(0, 0, CAP_BEAD_ROOT_Z) * pocket_profile(CAP_SKIRT_SIZE),
+        Pos(0, 0, CAP_BEAD_PEAK_Z) * pocket_profile(CAP_BEAD_SIZE),
+        Pos(0, 0, CAP_SKIRT_TOP) * pocket_profile(CAP_SKIRT_SIZE),
     ], ruled=True)
     cap = flange.fuse(skirt, bead)
-    cap = cap - Pos(0, 0, CAP_SEAT_DEPTH) * rounded_prism(
-        CAP_SKIRT_INNER_SIZE, CAP_SKIRT_TOP, .1)
+    cap = cap - Pos(0, 0, CAP_SEAT_DEPTH) * pocket_prism(
+        CAP_SKIRT_INNER_SIZE, CAP_SKIRT_TOP)
     for sign in (-1, 1):
-        x_slot = Pos(sign*(CAP_SKIRT_INNER_SIZE[0]/2 + .75), 0, .35) * Box(
-            2, .8, 3, align=(Align.CENTER, Align.CENTER, Align.MIN))
+        x_slot = Pos(sign*(sum(CAP_SKIRT_INNER_SIZE)/2 + 1), 0, .35) * Box(
+            3, .8, 3, align=(Align.CENTER, Align.CENTER, Align.MIN))
         y_slot = Pos(0, sign*(CAP_SKIRT_INNER_SIZE[1]/2 + .75), .35) * Box(
             .8, 2, 3, align=(Align.CENTER, Align.CENTER, Align.MIN))
         cap = cap - x_slot - y_slot
@@ -111,7 +123,7 @@ def cut_magnet_pockets(jaw, *, money_side=False):
                 (CAP_SEAT_SIZE, -.1, CAP_SEAT_DEPTH + .1),
                 (CAP_GROOVE_SIZE, CAP_GROOVE_BOTTOM,
                  CAP_GROOVE_TOP - CAP_GROOVE_BOTTOM)):
-            cutter = Pos(x, y, bottom) * rounded_prism(size, depth)
+            cutter = Pos(x, y, bottom) * pocket_prism(size, depth)
             jaw = jaw - loading * cutter
     return jaw
 
@@ -248,14 +260,14 @@ def make_clip(open_angle=90.0):
 
 
 def make_print_layout():
-    """One jaw flat on the bed, the other upright; hinge axis along Y."""
+    """Keep the wallet-side jaw upright, with the opposite jaw flat."""
     return Compound(children=list(make_clip(90)))
 
 
 def make_caps_print_layout():
     cap = make_magnet_cap()
-    return Compound(children=[Pos(55 + 14*i, y, 0) * cap
-                              for i in range(3) for y in (-7, 7)])
+    return Compound(children=[Pos(55 + 14*i, y, 0) * Rot(0, 0, 90) * cap
+                              for i in range(3) for y in (-12, 12)])
 
 
 def make_closed_assembly():
@@ -287,7 +299,7 @@ def main():
     export_step(make_closed_assembly(),
                 args.output / 'money_clip_closed.step')
     print(f'Exported print-in-place clip to {args.output}')
-    print('Print as oriented: one jaw flat, one upright at 90 degrees. Keep hinge gaps clear.')
+    print('Print as oriented: wallet-side jaw upright at 90 degrees; caps flange-down.')
     if args.view:
         try:
             from ocp_vscode import show

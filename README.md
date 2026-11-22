@@ -97,9 +97,9 @@ The print view displays the exported STEP, including six small caps beside
 the hinged jaws. The closed view includes the caps installed in the jaws.
 
 The clip uses **six rectangular 10 × 5 × 2 mm magnets**, three per jaw.
-Each magnet has its own **12.65 × 7.65 mm rectangular snap-in cap**;
+Each magnet has its own **20.3 × 7.65 mm pointed snap-in cap**;
 there is no cover spanning the whole face. The three magnets are parallel and aligned side by side across each jaw,
-with all centres 32.0 mm from the hinge axis. Their 9.0 mm centre spacing
+with all centres 28.0 mm from the hinge axis. Their 9.0 mm centre spacing
 leaves 1.1 mm between adjacent cap seats. The flat jaw loads from the back, leaving a continuous **0.6 mm PLA
 clamping skin**. The upright jaw loads from the **money-facing side**, with
 flush cap faces; its opposite, wallet-facing back retains a continuous
@@ -114,8 +114,12 @@ with 0.8 mm split slots. The wider pockets match these thicker tabs; print
 the updated jaws and caps together, as the old pockets will not fit them.
 The snap interference is reduced to 0.10 mm per side to help seating the
 thicker tabs. The outer snap bead
-catches in a matching rounded rectangular groove. These caps and pockets
-replace the previous round parts and are not interchangeable with them.
+catches in a matching pointed groove. Each profile has a rectangular magnet
+space with triangular ends: on the upright wallet jaw these become
+45-degree cavity roofs rather than a full-width flat ceiling. The pockets
+move 4 mm toward the hinge to keep their pointed ends inside the jaw.
+Print the new jaws and caps together; the previous rectangular parts are
+not interchangeable with these pointed parts.
 The added plastic between magnets will reduce attraction compared with
 exposed magnets; holding force needs a physical trial.
 
@@ -128,10 +132,14 @@ Exports into `output/`:
 
 Print the main STL as oriented: one jaw flat on the bed, the other upright
 at 90 degrees, and the cap flanges flat with their split skirts pointing up.
-The cap ridge grows outward by 0.20 mm over 0.5 mm of height: a 21.8 degree
-slope from vertical instead of the previous steep overhang. Print the caps
-flange-down as exported; no cap supports should be needed with a calibrated
-PLA profile. The jaw pockets and hinge still need their own slicer inspection.
+The cap's gradual ridge remains below a 45-degree outward slope, including
+its diagonal faces. Print caps flange-down as exported. Their 0.9 mm walls
+and open slots remain suitable for a typical 0.4 mm nozzle; confirm the toolpaths
+in your slicer. The pointed roofs reduce support needs on the upright jaw
+without changing its wallet-printing orientation. The lower jaw still has
+short pocket-roof bridges and the hinge still has a horizontal bore/pin:
+inspect those bridges and groove details rather than enabling supports in
+the hinge or snap grooves. No support-free physical print is verified here.
 Keep supports and brim material out of hinge clearances, snap grooves and
 cap slots. A brim can help upright-jaw adhesion. The 2.4 mm axle is printed
 integrally; no filament pin or hinge assembly is needed. Hinge clearances
@@ -151,8 +159,8 @@ The jaws have smooth tips. The moving jaw slopes inward by 3 degrees so
 the tips contact first, leaving roughly 1.9 mm clearance near the body root.
 Its magnet pockets follow the inclined face. The upright jaw's underside
 curves continuously down to its flat bed land, with outward slope within
-45 degrees of vertical. Inspect horizontal axle bridges, pocket roofs
-and groove overhangs in your slicer before printing.
+45 degrees of vertical. Inspect the remaining horizontal axle bridges, flat-jaw pocket roofs
+and groove details in your slicer before printing.
 
 Geometry tests check valid separate solids, sampled hinge motion, smooth
 tip contact, continuous skins, magnet/cap fit and mechanical cap capture.
