@@ -27,6 +27,7 @@ WIDTH = 28.0
 BODY_START_X = 5.3
 TIP_X = 61.8  # About 1.5 times the previous 41.2 mm reach.
 CORNER_RADIUS = 3.0
+PLATE_EDGE_RADIUS = 0.6  # Round the outer face rims, not pocket or hinge edges.
 PLATE_THICKNESS = 3.6
 JAW_ANGLE = 0.0  # Both clamping faces are parallel; the extra joint adapts to cash.
 HINGE_BLEND_RADIUS = 0.9
@@ -197,6 +198,11 @@ def make_jaw(knuckles, *, captive_axle=False):
         RectangleRounded(length, WIDTH, CORNER_RADIUS),
         amount=PLATE_THICKNESS,
     )
+    # Round the outside rims before cutting pockets or adding hinge parts.
+    # This keeps the cap seats, joint clearances and support slopes exact.
+    perimeter = [edge for edge in jaw.edges()
+                 if edge.bounding_box().size.Z < 1e-6]
+    jaw = fillet(perimeter, PLATE_EDGE_RADIUS)
 
     if not captive_axle:
         jaw = jaw & upright_root_mask()

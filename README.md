@@ -156,3 +156,7 @@ Geometry tests check separate valid solids, both hinges' sampled motion,
 parallel cash configurations, bed contact, pocket/cap fit, mechanical cap
 capture, printable wall thickness, and roof slopes. Print the updated jaws
 and caps together; previous clip bodies are not compatible with this revision.
+
+Both plates have 0.6 mm rounded outer face rims in addition to their 3 mm
+outline corners. The rims are rounded before pocket cuts and hinge assembly,
+so cap seats, articulation clearances and underside support slopes stay intact.

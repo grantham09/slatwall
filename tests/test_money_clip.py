@@ -4,7 +4,7 @@ from math import radians, sin, cos
 from build123d import Align, Box, GeomType, Plane, Pos, Rot
 from magnetic_money_clip import (
     make_clip, make_jaw, make_print_layout, RADIAL_CLEARANCE,
-    PLATE_THICKNESS, TIP_X, THREE_KNUCKLES, TWO_KNUCKLES,
+    PLATE_THICKNESS, TIP_X, WIDTH, PLATE_EDGE_RADIUS, THREE_KNUCKLES, TWO_KNUCKLES,
     MAGNET_CENTRES, MAGNET_SKIN, MAGNET_POCKET_DEPTH,
     MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS, MAGNET_SIZE, CAP_FLANGE_SIZE,
     MAGNET_POCKET_SIZE, pocket_prism,
@@ -136,6 +136,20 @@ class MoneyClipTests(unittest.TestCase):
                 self.assertLess(overlap.volume if overlap else 0, 1e-6)
         self.assertEqual(len(make_caps_print_layout().solids()), 12)
         self.assertEqual(len(make_closed_assembly().solids()), 15)
+
+    def test_plate_outer_rims_are_rounded(self):
+        self.assertAlmostEqual(PLATE_EDGE_RADIUS, .6)
+        for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):
+            jaw = make_jaw(knuckles, captive_axle=knuckles == THREE_KNUCKLES)
+            for side in (-1, 1):
+                for z in (.05, PLATE_THICKNESS-.05):
+                    corner = Pos(43, side*(WIDTH/2-.05), z) * Box(.2, .04, .04)
+                    inset = Pos(43, side*(WIDTH/2-.8), z) * Box(.2, .04, .04)
+                    if knuckles == TWO_KNUCKLES:
+                        corner = moving_body_location() * corner
+                        inset = moving_body_location() * inset
+                    self.assertLess(self.overlap_volume(jaw, corner), 1e-6)
+                    self.assertAlmostEqual(self.overlap_volume(jaw, inset), inset.volume, places=5)
 
     def test_cap_tabs_have_printable_wall_thickness(self):
         cap = make_magnet_cap()
