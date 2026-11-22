@@ -5,6 +5,7 @@ from magnetic_money_clip import (
     PLATE_THICKNESS, TIP_X, THREE_KNUCKLES, TWO_KNUCKLES,
     MAGNET_CENTRES, MAGNET_SKIN, MAGNET_POCKET_DEPTH,
     MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS, CAP_FLANGE_SIZE,
+    CAP_TAB_THICKNESS, CAP_SKIRT_SIZE, CAP_SKIRT_INNER_SIZE,
     make_magnet_cap, make_caps_print_layout, make_closed_assembly,
     moving_body_location, magnet_loading_location,
 )
@@ -92,6 +93,20 @@ class MoneyClipTests(unittest.TestCase):
                 self.assertLess(overlap.volume if overlap else 0, 1e-6)
         self.assertEqual(len(make_caps_print_layout().solids()), 6)
         self.assertEqual(len(make_closed_assembly().solids()), 8)
+
+    def test_cap_tabs_have_printable_wall_thickness(self):
+        cap = make_magnet_cap()
+        for outer, inner in zip(CAP_SKIRT_SIZE, CAP_SKIRT_INNER_SIZE):
+            self.assertAlmostEqual((outer-inner)/2, CAP_TAB_THICKNESS)
+            self.assertGreaterEqual((outer-inner)/2, .89)
+        # Check actual wall material away from slots, below the snap ridge.
+        for sign in (-1, 1):
+            probes = (
+                Pos(sign*5.6, 1.2, 1.4) * Box(.85, 1, .6),
+                Pos(2, sign*3.1, 1.4) * Box(1, .85, .6),
+            )
+            for probe in probes:
+                self.assertAlmostEqual((cap & probe).volume, probe.volume, places=5)
 
     def test_cap_overhangs_stay_within_45_degrees_when_flange_down(self):
         cap = make_magnet_cap()

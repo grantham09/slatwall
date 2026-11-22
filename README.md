@@ -97,10 +97,10 @@ The print view displays the exported STEP, including six small caps beside
 the hinged jaws. The closed view includes the caps installed in the jaws.
 
 The clip uses **six rectangular 10 × 5 × 2 mm magnets**, three per jaw.
-Each magnet has its own **11.55 × 6.55 mm rectangular snap-in cap**;
+Each magnet has its own **12.65 × 7.65 mm rectangular snap-in cap**;
 there is no cover spanning the whole face. The three magnets are parallel and aligned side by side across each jaw,
-with all centres 32.5 mm from the hinge axis. Their 8.5 mm centre spacing
-leaves 1.7 mm between adjacent cap seats. The flat jaw loads from the back, leaving a continuous **0.6 mm PLA
+with all centres 32.0 mm from the hinge axis. Their 9.0 mm centre spacing
+leaves 1.1 mm between adjacent cap seats. The flat jaw loads from the back, leaving a continuous **0.6 mm PLA
 clamping skin**. The upright jaw loads from the **money-facing side**, with
 flush cap faces; its opposite, wallet-facing back retains a continuous
 **0.6 mm PLA skin** without pocket openings. The jaw remains inclined by
@@ -108,7 +108,12 @@ flush cap faces; its opposite, wallet-facing back retains a continuous
 or attachment hardware are included. No magnet adhesive is needed.
 Each jaw is **3.6 mm thick**, including the recessed cap seat. Magnet length
 (10 mm) runs along the jaw, and width (5 mm) runs across it. The skirt has
-a 10.3 × 5.3 mm interior for installation clearance; its outer snap bead
+a 10.3 × 5.3 mm interior for installation clearance. The skirt walls are
+**0.9 mm thick** (previously 0.35 mm), intended for a typical 0.4 mm nozzle,
+with 0.8 mm split slots. The wider pockets match these thicker tabs; print
+the updated jaws and caps together, as the old pockets will not fit them.
+The snap interference is reduced to 0.10 mm per side to help seating the
+thicker tabs. The outer snap bead
 catches in a matching rounded rectangular groove. These caps and pockets
 replace the previous round parts and are not interchangeable with them.
 The added plastic between magnets will reduce attraction compared with
@@ -123,7 +128,7 @@ Exports into `output/`:
 
 Print the main STL as oriented: one jaw flat on the bed, the other upright
 at 90 degrees, and the cap flanges flat with their split skirts pointing up.
-The cap ridge grows outward by 0.25 mm over 0.5 mm of height: a 26.6 degree
+The cap ridge grows outward by 0.20 mm over 0.5 mm of height: a 21.8 degree
 slope from vertical instead of the previous steep overhang. Print the caps
 flange-down as exported; no cap supports should be needed with a calibrated
 PLA profile. The jaw pockets and hinge still need their own slicer inspection.
