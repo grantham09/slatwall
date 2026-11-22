@@ -169,3 +169,11 @@ money, so physical pull-out testing with your magnets is particularly
 important before attaching it to a wallet. Geometry tests do not establish
 printed snap force, holding force or fatigue life. The gentler cap ramp
 changes snap behavior, so trial-fit the updated cap before full assembly.
+
+The upright jaw's lower body edge now rises from each hinge web toward the
+outside corners and toward the centre gap. These four faces are about
+42 degrees from vertical in the actual 90-degree print orientation, replacing
+three unsupported horizontal ledges. The curved side transition and flat
+bed lands remain. The waist between the tabs forms a shallow inverted V;
+the outer corners are similarly swept upward. This changes the jaw outline
+near the hinge, not its wallet-mounting face or magnet positions.

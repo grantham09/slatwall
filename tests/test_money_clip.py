@@ -42,6 +42,18 @@ class MoneyClipTests(unittest.TestCase):
         for jaw in layout.solids():
             self.assertGreater((jaw & bed_slice).volume, .05)
 
+    def test_upright_body_bottom_has_slopes_instead_of_flat_ledges(self):
+        _, jaw = make_clip(90)
+        bottom_faces = [face for face in jaw.faces()
+                        if face.geom_type == GeomType.PLANE
+                        and 8 < face.center().Z < 16
+                        and face.normal_at().Z < -.1]
+        self.assertEqual(len(bottom_faces), 4)
+        for face in bottom_faces:
+            self.assertLessEqual(-face.normal_at().Z, 2**-.5)
+        self.assertEqual(len(jaw.solids()), 1)
+        self.assertTrue(jaw.is_valid)
+
     def test_magnet_pockets_keep_opposite_faces_continuous(self):
         self.assertEqual(len(MAGNET_CENTRES), 3)
         self.assertEqual((MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS), (10, 5, 2))

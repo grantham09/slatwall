@@ -31,6 +31,7 @@ PLATE_THICKNESS = 3.6
 JAW_ANGLE = 3.0  # Moving jaw converges toward the straight jaw at its tip.
 HINGE_BLEND_RADIUS = 0.9
 BED_LAND_RADIUS = 0.3
+UPRIGHT_ROOT_RISE = 1.1  # Rise/run across jaw width; allows for the 3-degree tilt.
 
 # The tips meet at closure; the moving jaw has clearance toward its root.
 # The hinge is only a rotational joint: no flexing of printed jaws.
@@ -133,6 +134,23 @@ THREE_KNUCKLES = [(-14.0, -9.10), (-2.70, 2.70), (9.10, 14.0)]
 TWO_KNUCKLES   = [(-8.75, -3.05), (3.05, 8.75)]
 
 
+def upright_root_mask():
+    """Keep only body material supported by the two hinge webs or a slope.
+
+    The centre gap gets a shallow inverted V, and the two outside corners
+    rise toward the jaw edges. In print orientation these faces slope about
+    42 degrees from vertical, replacing the three horizontal underside ledges.
+    """
+    ys = [-WIDTH/2, *(v for interval in TWO_KNUCKLES for v in interval),
+          0, WIDTH/2]
+    points = []
+    for y in sorted(ys):
+        distance = min(max(low-y, 0, y-high) for low, high in TWO_KNUCKLES)
+        points.append((BODY_START_X + UPRIGHT_ROOT_RISE*distance, y))
+    points += [(TIP_X+1, WIDTH/2), (TIP_X+1, -WIDTH/2)]
+    return extrude(Polygon(*points, align=None), amount=PLATE_THICKNESS, dir=(0, 0, 1))
+
+
 def moving_body_location():
     """Incline the moving body about its inner tip; leave hinge axis unchanged."""
     return (Pos(TIP_X, 0, PLATE_THICKNESS) * Rot(0, -JAW_ANGLE, 0)
@@ -170,6 +188,8 @@ def make_jaw(knuckles, *, captive_axle=False):
         amount=PLATE_THICKNESS,
     )
 
+    if not captive_axle:
+        jaw = jaw & upright_root_mask()
     jaw = cut_magnet_pockets(jaw, money_side=not captive_axle)
     if not captive_axle:
         jaw = moving_body_location() * jaw
