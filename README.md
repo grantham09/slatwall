@@ -123,6 +123,10 @@ Exports into `output/`:
 
 Print the main STL as oriented: one jaw flat on the bed, the other upright
 at 90 degrees, and the cap flanges flat with their split skirts pointing up.
+The cap ridge grows outward by 0.25 mm over 0.5 mm of height: a 26.6 degree
+slope from vertical instead of the previous steep overhang. Print the caps
+flange-down as exported; no cap supports should be needed with a calibrated
+PLA profile. The jaw pockets and hinge still need their own slicer inspection.
 Keep supports and brim material out of hinge clearances, snap grooves and
 cap slots. A brim can help upright-jaw adhesion. The 2.4 mm axle is printed
 integrally; no filament pin or hinge assembly is needed. Hinge clearances
@@ -150,4 +154,5 @@ tip contact, continuous skins, magnet/cap fit and mechanical cap capture.
 On the upright jaw, magnetic attraction loads the caps outward toward the
 money, so physical pull-out testing with your magnets is particularly
 important before attaching it to a wallet. Geometry tests do not establish
-printed snap force, holding force or fatigue life.
+printed snap force, holding force or fatigue life. The gentler cap ramp
+changes snap behavior, so trial-fit the updated cap before full assembly.

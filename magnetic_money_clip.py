@@ -51,13 +51,15 @@ MAGNET_CENTRES = ((32.5, -8.5), (32.5, 0.0), (32.5, 8.5))
 CAP_SEAT_SIZE = (11.8, 6.8)
 CAP_SEAT_DEPTH = 0.8
 CAP_GROOVE_SIZE = (11.7, 6.7)
-CAP_GROOVE_BOTTOM = 2.15
+CAP_GROOVE_BOTTOM = 2.10
 CAP_GROOVE_TOP = 2.75
 CAP_FLANGE_SIZE = (11.55, 6.55)
 CAP_SKIRT_SIZE = (11.0, 6.0)
 CAP_SKIRT_INNER_SIZE = (10.3, 5.3)
 CAP_BEAD_SIZE = (11.5, 6.5)
 CAP_SKIRT_TOP = 2.8
+CAP_BEAD_ROOT_Z = 2.0
+CAP_BEAD_PEAK_Z = 2.5
 
 
 def rounded_prism(size, depth, radius=.3):
@@ -67,17 +69,19 @@ def rounded_prism(size, depth, radius=.3):
 def make_magnet_cap():
     """Small rectangular snap cap for one 10 x 5 x 2 mm magnet.
 
-    Four slots let the skirt flex through the pocket throat; its tapered
-    bead catches in the rectangular groove. Trial-fit one cap before fitting
+    Print flange down, skirt up. The ridge grows 0.25 mm outward over
+    0.5 mm of height (26.6 degrees from vertical), avoiding the previous
+    steep underside. Four slots let the skirt flex through the throat;
+    the bead catches in the groove. Trial-fit one cap before fitting
     all six; printed PLA snap retention is not established by CAD checks.
     """
     flange = rounded_prism(CAP_FLANGE_SIZE, CAP_SEAT_DEPTH, .35)
     skirt = Pos(0, 0, CAP_SEAT_DEPTH) * rounded_prism(
         CAP_SKIRT_SIZE, CAP_SKIRT_TOP - CAP_SEAT_DEPTH)
     bead = loft([
-        Pos(0, 0, 2.3) * RectangleRounded(*CAP_SKIRT_SIZE, .3),
-        Pos(0, 0, 2.5) * RectangleRounded(*CAP_BEAD_SIZE, .55),
-        Pos(0, 0, 2.7) * RectangleRounded(*CAP_SKIRT_SIZE, .3),
+        Pos(0, 0, CAP_BEAD_ROOT_Z) * RectangleRounded(*CAP_SKIRT_SIZE, .3),
+        Pos(0, 0, CAP_BEAD_PEAK_Z) * RectangleRounded(*CAP_BEAD_SIZE, .55),
+        Pos(0, 0, CAP_SKIRT_TOP) * RectangleRounded(*CAP_SKIRT_SIZE, .3),
     ], ruled=True)
     cap = flange.fuse(skirt, bead)
     cap = cap - Pos(0, 0, CAP_SEAT_DEPTH) * rounded_prism(

@@ -93,6 +93,16 @@ class MoneyClipTests(unittest.TestCase):
         self.assertEqual(len(make_caps_print_layout().solids()), 6)
         self.assertEqual(len(make_closed_assembly().solids()), 8)
 
+    def test_cap_overhangs_stay_within_45_degrees_when_flange_down(self):
+        cap = make_magnet_cap()
+        self.assertAlmostEqual(cap.bounding_box().min.Z, 0, places=5)
+        downward_faces = [face for face in cap.faces()
+                          if face.center().Z > .01 and face.normal_at().Z < -1e-5]
+        self.assertGreater(len(downward_faces), 0)
+        for face in downward_faces:
+            # Face slope from vertical <= 45 degrees; exclude the bed face.
+            self.assertLessEqual(-face.normal_at().Z, 2**-.5 + 1e-6)
+
     def test_upright_caps_open_toward_money_and_back_is_solid(self):
         jaw = make_jaw(TWO_KNUCKLES)
         for x, y in MAGNET_CENTRES:
