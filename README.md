@@ -98,8 +98,9 @@ the hinged jaws. The closed view includes the caps installed in the jaws.
 
 The clip uses **six rectangular 10 × 5 × 2 mm magnets**, three per jaw.
 Each magnet has its own **11.55 × 6.55 mm rectangular snap-in cap**;
-there is no cover spanning the whole face. The magnets form a triangle on
-each jaw to leave room for individual retaining skirts. The flat jaw loads from the back, leaving a continuous **0.6 mm PLA
+there is no cover spanning the whole face. The three magnets are parallel and aligned side by side across each jaw,
+with all centres 32.5 mm from the hinge axis. Their 8.5 mm centre spacing
+leaves 1.7 mm between adjacent cap seats. The flat jaw loads from the back, leaving a continuous **0.6 mm PLA
 clamping skin**. The upright jaw loads from the **money-facing side**, with
 flush cap faces; its opposite, wallet-facing back retains a continuous
 **0.6 mm PLA skin** without pocket openings. The jaw remains inclined by
