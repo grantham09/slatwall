@@ -8,16 +8,16 @@ the hinge axis is horizontal. Use a brim if needed, keeping it out of hinge gaps
 The axle is fused to the three-knuckle jaw; the other jaw rotates around it.
 The moving jaw slopes inward by 3 degrees so the smooth tips meet first.
 Gently free the hinge after cooling. Clearances are starting values for PLA+;
-verify with your printer before relying on the clip. Install six 8 x 2 mm
+verify with your printer before relying on the clip. Install six 10 x 5 x 2 mm
 magnets and retain each with its own small printed snap cap. The flat jaw
 loads from the back; the upright jaw loads from the money-facing side so
 its outer back stays continuous for wallet mounting. No glue is required.
 """
 from pathlib import Path
 from build123d import (
-    Align, Axis, Box, Compound, Cone, Cylinder, Plane, Pos, RectangleRounded, Rot,
+    Align, Axis, Box, Compound, Cylinder, Plane, Pos, RectangleRounded, Rot,
     BuildSketch, BuildLine, Bezier, Polyline, make_face,
-    extrude, fillet, export_step, export_stl,
+    extrude, fillet, loft, export_step, export_stl,
 )
 import argparse
 from math import radians, cos, tan
@@ -41,48 +41,53 @@ AXLE_D = 2.4
 RADIAL_CLEARANCE = 0.30
 PIN_HOLE_D = AXLE_D + 2 * RADIAL_CLEARANCE
 
-MAGNET_D = 8.0
+MAGNET_LENGTH = 10.0  # Along the jaw (X).
+MAGNET_WIDTH = 5.0    # Across the jaw (Y).
 MAGNET_THICKNESS = 2.0
 MAGNET_SKIN = 0.6
-MAGNET_POCKET_D = 9.2  # Room for the magnet and the cap's split retaining skirt.
+MAGNET_POCKET_SIZE = (11.2, 6.2)  # Includes room for the split cap skirt.
 MAGNET_POCKET_DEPTH = PLATE_THICKNESS - MAGNET_SKIN
-MAGNET_CENTRES = ((34.0, -7.0), (34.0, 7.0), (23.0, 0.0))
-CAP_SEAT_D = 9.8
+MAGNET_CENTRES = ((32.5, -7.0), (32.5, 7.0), (21.0, 0.0))
+CAP_SEAT_SIZE = (11.8, 6.8)
 CAP_SEAT_DEPTH = 0.8
-CAP_GROOVE_D = 9.7
+CAP_GROOVE_SIZE = (11.7, 6.7)
 CAP_GROOVE_BOTTOM = 2.15
 CAP_GROOVE_TOP = 2.75
-CAP_DISC_D = 9.55
-CAP_SKIRT_D = 9.0
-CAP_SKIRT_INNER_D = 8.3
-CAP_BEAD_D = 9.5
+CAP_FLANGE_SIZE = (11.55, 6.55)
+CAP_SKIRT_SIZE = (11.0, 6.0)
+CAP_SKIRT_INNER_SIZE = (10.3, 5.3)
+CAP_BEAD_SIZE = (11.5, 6.5)
 CAP_SKIRT_TOP = 2.8
 
 
-def make_magnet_cap():
-    """Local snap cap: flat outside down, four split skirt fingers up.
+def rounded_prism(size, depth, radius=.3):
+    return extrude(RectangleRounded(*size, radius), amount=depth)
 
-    The bead flexes through the 9.2 mm throat and catches in its annular
-    groove. The central disc traps the magnet without adhesive. Trial-fit
-    one cap before fitting all six; PLA snap retention is printer-dependent.
+
+def make_magnet_cap():
+    """Small rectangular snap cap for one 10 x 5 x 2 mm magnet.
+
+    Four slots let the skirt flex through the pocket throat; its tapered
+    bead catches in the rectangular groove. Trial-fit one cap before fitting
+    all six; printed PLA snap retention is not established by CAD checks.
     """
-    disc = Cylinder(CAP_DISC_D/2, CAP_SEAT_DEPTH,
-                    align=(Align.CENTER, Align.CENTER, Align.MIN))
-    skirt = Pos(0, 0, CAP_SEAT_DEPTH) * Cylinder(
-        CAP_SKIRT_D/2, CAP_SKIRT_TOP - CAP_SEAT_DEPTH,
-        align=(Align.CENTER, Align.CENTER, Align.MIN))
-    bead = Pos(0, 0, 2.3) * Cone(CAP_SKIRT_D/2, CAP_BEAD_D/2, .2,
-                                align=(Align.CENTER, Align.CENTER, Align.MIN))
-    bead = bead.fuse(Pos(0, 0, 2.5) * Cone(CAP_BEAD_D/2, CAP_SKIRT_D/2, .2,
-                                         align=(Align.CENTER, Align.CENTER, Align.MIN)))
-    cap = disc.fuse(skirt, bead)
-    cap = cap - Pos(0, 0, CAP_SEAT_DEPTH) * Cylinder(
-        CAP_SKIRT_INNER_D/2, CAP_SKIRT_TOP,
-        align=(Align.CENTER, Align.CENTER, Align.MIN))
-    for angle in (0, 90, 180, 270):
-        slot = Rot(0, 0, angle) * Pos(3.9, 0, .35) * Box(
-            2, .6, 3, align=(Align.MIN, Align.CENTER, Align.MIN))
-        cap = cap - slot
+    flange = rounded_prism(CAP_FLANGE_SIZE, CAP_SEAT_DEPTH, .35)
+    skirt = Pos(0, 0, CAP_SEAT_DEPTH) * rounded_prism(
+        CAP_SKIRT_SIZE, CAP_SKIRT_TOP - CAP_SEAT_DEPTH)
+    bead = loft([
+        Pos(0, 0, 2.3) * RectangleRounded(*CAP_SKIRT_SIZE, .3),
+        Pos(0, 0, 2.5) * RectangleRounded(*CAP_BEAD_SIZE, .55),
+        Pos(0, 0, 2.7) * RectangleRounded(*CAP_SKIRT_SIZE, .3),
+    ], ruled=True)
+    cap = flange.fuse(skirt, bead)
+    cap = cap - Pos(0, 0, CAP_SEAT_DEPTH) * rounded_prism(
+        CAP_SKIRT_INNER_SIZE, CAP_SKIRT_TOP, .1)
+    for sign in (-1, 1):
+        x_slot = Pos(sign*5.9, 0, .35) * Box(
+            2, .6, 3, align=(Align.CENTER, Align.CENTER, Align.MIN))
+        y_slot = Pos(0, sign*3.4, .35) * Box(
+            .6, 2, 3, align=(Align.CENTER, Align.CENTER, Align.MIN))
+        cap = cap - x_slot - y_slot
     return cap
 
 
@@ -96,14 +101,12 @@ def cut_magnet_pockets(jaw, *, money_side=False):
     """Cut cap seats and snap grooves while keeping the opposite face solid."""
     loading = magnet_loading_location(money_side)
     for x, y in MAGNET_CENTRES:
-        for diameter, bottom, depth in (
-                (MAGNET_POCKET_D, -.1, MAGNET_POCKET_DEPTH + .1),
-                (CAP_SEAT_D, -.1, CAP_SEAT_DEPTH + .1),
-                (CAP_GROOVE_D, CAP_GROOVE_BOTTOM,
+        for size, bottom, depth in (
+                (MAGNET_POCKET_SIZE, -.1, MAGNET_POCKET_DEPTH + .1),
+                (CAP_SEAT_SIZE, -.1, CAP_SEAT_DEPTH + .1),
+                (CAP_GROOVE_SIZE, CAP_GROOVE_BOTTOM,
                  CAP_GROOVE_TOP - CAP_GROOVE_BOTTOM)):
-            cutter = Pos(x, y, bottom) * Cylinder(
-                diameter/2, depth,
-                align=(Align.CENTER, Align.CENTER, Align.MIN))
+            cutter = Pos(x, y, bottom) * rounded_prism(size, depth)
             jaw = jaw - loading * cutter
     return jaw
 
@@ -246,7 +249,7 @@ def make_print_layout():
 
 def make_caps_print_layout():
     cap = make_magnet_cap()
-    return Compound(children=[Pos(55 + 12*i, y, 0) * cap
+    return Compound(children=[Pos(55 + 14*i, y, 0) * cap
                               for i in range(3) for y in (-7, 7)])
 
 

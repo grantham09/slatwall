@@ -1,9 +1,10 @@
 import unittest
-from build123d import Align, Box, Cylinder, GeomType, Plane, Pos
+from build123d import Align, Box, GeomType, Plane, Pos
 from magnetic_money_clip import (
     make_clip, make_jaw, make_print_layout, RADIAL_CLEARANCE,
     PLATE_THICKNESS, TIP_X, THREE_KNUCKLES, TWO_KNUCKLES,
-    MAGNET_CENTRES, MAGNET_SKIN, MAGNET_POCKET_D, MAGNET_POCKET_DEPTH,
+    MAGNET_CENTRES, MAGNET_SKIN, MAGNET_POCKET_DEPTH,
+    MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS, CAP_FLANGE_SIZE,
     make_magnet_cap, make_caps_print_layout, make_closed_assembly,
     moving_body_location, magnet_loading_location,
 )
@@ -41,14 +42,16 @@ class MoneyClipTests(unittest.TestCase):
 
     def test_magnet_pockets_keep_opposite_faces_continuous(self):
         self.assertEqual(len(MAGNET_CENTRES), 3)
+        self.assertEqual((MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS), (10, 5, 2))
         self.assertAlmostEqual(PLATE_THICKNESS - MAGNET_POCKET_DEPTH, MAGNET_SKIN)
         for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):
             jaw = make_jaw(knuckles, captive_axle=knuckles == THREE_KNUCKLES)
             for x, y in MAGNET_CENTRES:
-                magnet = Pos(x, y, .9) * Cylinder(
-                    4, 2, align=(Align.CENTER, Align.CENTER, Align.MIN))
-                skin = Pos(x, y, MAGNET_POCKET_DEPTH + .1) * Cylinder(
-                    4.4, MAGNET_SKIN - .2,
+                magnet = Pos(x, y, .9) * Box(
+                    MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS,
+                    align=(Align.CENTER, Align.CENTER, Align.MIN))
+                skin = Pos(x, y, MAGNET_POCKET_DEPTH + .1) * Box(
+                    10.6, 5.6, MAGNET_SKIN - .2,
                     align=(Align.CENTER, Align.CENTER, Align.MIN))
                 if knuckles == TWO_KNUCKLES:
                     placement = moving_body_location() * magnet_loading_location(True)
@@ -62,8 +65,8 @@ class MoneyClipTests(unittest.TestCase):
         cap = make_magnet_cap()
         self.assertTrue(cap.is_valid)
         self.assertEqual(len(cap.solids()), 1)
-        self.assertLess(cap.bounding_box().size.X, 10)
-        self.assertLess(cap.bounding_box().size.Y, 10)
+        self.assertAlmostEqual(cap.bounding_box().size.X, CAP_FLANGE_SIZE[0])
+        self.assertAlmostEqual(cap.bounding_box().size.Y, CAP_FLANGE_SIZE[1])
         for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):
             captive = knuckles == THREE_KNUCKLES
             jaw = make_jaw(knuckles, captive_axle=captive)
@@ -82,8 +85,9 @@ class MoneyClipTests(unittest.TestCase):
                     volume = (sum(shape.volume for shape in collision)
                               if isinstance(collision, list) else collision.volume)
                     self.assertGreater(volume, .01)
-                magnet = placement * Pos(x, y, .9) * Cylinder(
-                    4, 2, align=(Align.CENTER, Align.CENTER, Align.MIN))
+                magnet = placement * Pos(x, y, .9) * Box(
+                    MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS,
+                    align=(Align.CENTER, Align.CENTER, Align.MIN))
                 overlap = magnet & fitted
                 self.assertLess(overlap.volume if overlap else 0, 1e-6)
         self.assertEqual(len(make_caps_print_layout().solids()), 6)
@@ -92,10 +96,10 @@ class MoneyClipTests(unittest.TestCase):
     def test_upright_caps_open_toward_money_and_back_is_solid(self):
         jaw = make_jaw(TWO_KNUCKLES)
         for x, y in MAGNET_CENTRES:
-            mouth = moving_body_location() * Pos(x, y, PLATE_THICKNESS - .3) * Cylinder(
-                4, .2, align=(Align.CENTER, Align.CENTER, Align.MIN))
-            back = moving_body_location() * Pos(x, y, .1) * Cylinder(
-                4.4, .3, align=(Align.CENTER, Align.CENTER, Align.MIN))
+            mouth = moving_body_location() * Pos(x, y, PLATE_THICKNESS - .3) * Box(
+                9.8, 4.8, .2, align=(Align.CENTER, Align.CENTER, Align.MIN))
+            back = moving_body_location() * Pos(x, y, .1) * Box(
+                10.6, 5.6, .3, align=(Align.CENTER, Align.CENTER, Align.MIN))
             overlap = jaw & mouth
             self.assertLess(overlap.volume if overlap else 0, 1e-6)
             self.assertAlmostEqual((jaw & back).volume, back.volume, places=5)

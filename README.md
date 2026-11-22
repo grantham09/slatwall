@@ -96,8 +96,8 @@ Viewing requires `ocp-vscode` and the VS Code OCP CAD Viewer extension.
 The print view displays the exported STEP, including six small caps beside
 the hinged jaws. The closed view includes the caps installed in the jaws.
 
-The clip uses **six 8 mm diameter × 2 mm thick magnets**, three per jaw.
-Each magnet has its own **9.55 mm snap-in cap**;
+The clip uses **six rectangular 10 × 5 × 2 mm magnets**, three per jaw.
+Each magnet has its own **11.55 × 6.55 mm rectangular snap-in cap**;
 there is no cover spanning the whole face. The magnets form a triangle on
 each jaw to leave room for individual retaining skirts. The flat jaw loads from the back, leaving a continuous **0.6 mm PLA
 clamping skin**. The upright jaw loads from the **money-facing side**, with
@@ -105,7 +105,11 @@ flush cap faces; its opposite, wallet-facing back retains a continuous
 **0.6 mm PLA skin** without pocket openings. The jaw remains inclined by
 3 degrees. This provides a smooth mounting surface; no wallet fasteners
 or attachment hardware are included. No magnet adhesive is needed.
-Each jaw is now **3.6 mm thick**, including the recessed rear cap seat.
+Each jaw is **3.6 mm thick**, including the recessed cap seat. Magnet length
+(10 mm) runs along the jaw, and width (5 mm) runs across it. The skirt has
+a 10.3 × 5.3 mm interior for installation clearance; its outer snap bead
+catches in a matching rounded rectangular groove. These caps and pockets
+replace the previous round parts and are not interchangeable with them.
 The added plastic between magnets will reduce attraction compared with
 exposed magnets; holding force needs a physical trial.
 
@@ -117,7 +121,7 @@ Exports into `output/`:
 - `money_clip_closed.step`: assembled jaws and installed caps for inspection.
 
 Print the main STL as oriented: one jaw flat on the bed, the other upright
-at 90 degrees, and the cap discs flat with their split skirts pointing up.
+at 90 degrees, and the cap flanges flat with their split skirts pointing up.
 Keep supports and brim material out of hinge clearances, snap grooves and
 cap slots. A brim can help upright-jaw adhesion. The 2.4 mm axle is printed
 integrally; no filament pin or hinge assembly is needed. Hinge clearances
@@ -128,7 +132,7 @@ caps: opposing magnets must attract. Put each magnet against the blind
 pocket floor, then press its cap in from the appropriate loading side
 (back of the flat jaw, money-facing side of the upright jaw)
 until the flange seats flush and the split skirt's bead catches in the groove.
-The skirt surrounds the magnet; the central disc keeps it from falling out.
+The skirt surrounds the magnet; the central plate keeps it from falling out.
 Trial-fit one cap first. Snap fit and retention in PLA+ depend on calibration
 and must be physically checked; these caps are not designed for frequent
 removal.
