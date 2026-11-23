@@ -114,10 +114,15 @@ a printing orientation. The `closed` state shows the empty assembly with
 all 12 caps installed.
 
 Jaw thickness remains **3.6 mm**. The existing stack contains a 2 mm magnet,
-0.6 mm protective back skin, 0.8 mm cap flange and installation clearance;
+0.6 mm protective back skin, 0.8 mm retaining rim and installation clearance;
 reducing thickness would require different retainers or a weaker skin.
 Each magnet has its own pointed snap cap (20.3 × 7.65 mm overall), with
 0.9 mm walls, 0.8 mm split slots and 0.10 mm snap interference per side.
+The central cover is **0.4 mm thick** (two 0.2 mm layers), while its retaining
+rim stays **0.8 mm** and tab walls stay **0.9 mm**. Sloped stops inside the
+new jaws position magnets 0.4 mm closer to each money-facing surface,
+with 0.1 mm clearance on each side of the magnet. The thinner face needs
+a physical strength check; magnetic pull has not been measured.
 The 10.3 × 5.3 mm skirt interior allows installation clearance. Trial-fit one
 cap before assembling all 12; no glue is required for magnet retention.
 
@@ -126,6 +131,7 @@ Exports into `output/`:
 - `money_clip_print_in_place.stl` and `.step`: three captive articulated
   pieces plus 12 loose caps, all in their printing positions.
 - `money_clip_magnet_cap.stl` and `.step`: one spare cap.
+- `money_clip_magnet_spacer.stl` and `.step`: optional 0.4 mm spacer for old jaws.
 - `money_clip_closed.step`: assembled empty clip with caps installed.
 - `money_clip_cash.step`: parallel-jaw articulation example without caps.
 
@@ -154,9 +160,15 @@ Printed snap force, grip strength and fatigue life all need physical testing.
 
 Geometry tests check separate valid solids, both hinges' sampled motion,
 parallel cash configurations, bed contact, pocket/cap fit, mechanical cap
-capture, printable wall thickness, and roof slopes. Print the updated jaws
-and caps together; previous clip bodies are not compatible with this revision.
+capture, printable wall thickness, and roof slopes. For previously printed articulated jaws, use the retrofit spacers described below.
 
 Both plates have 0.6 mm rounded outer face rims in addition to their 3 mm
 outline corners. The rims are rounded before pocket cuts and hinge assembly,
 so cap seats, articulation clearances and underside support slopes stay intact.
+
+For jaws already printed before the thinner covers, use one **0.4 mm spacer
+behind each magnet**, with its larger face against the old pocket floor,
+then install the new cap. Print the spacers small-face-down as exported.
+This advances the magnets instead of leaving extra free space behind them.
+Do not add spacers to newly exported jaws: their sloped stops are built in.
+The cap's external fit is unchanged.

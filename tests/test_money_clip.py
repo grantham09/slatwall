@@ -9,7 +9,8 @@ from magnetic_money_clip import (
     MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS, MAGNET_SIZE, CAP_FLANGE_SIZE,
     MAGNET_POCKET_SIZE, pocket_prism,
     CAP_TAB_THICKNESS, CAP_SKIRT_SIZE, CAP_SKIRT_INNER_SIZE,
-    make_magnet_cap, make_caps_print_layout, make_closed_assembly,
+    CAP_FACE_THICKNESS, CAP_SEAT_DEPTH, MAGNET_INSTALL_Z,
+    make_magnet_cap, make_magnet_spacer, make_caps_print_layout, make_closed_assembly,
     moving_body_location, magnet_loading_location, make_cash_configuration,
     SECOND_RADIUS, SECOND_BORE_D, SECOND_PIVOT_X, SECOND_PIVOT_Z,
 )
@@ -89,7 +90,7 @@ class MoneyClipTests(unittest.TestCase):
         for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):
             jaw = make_jaw(knuckles, captive_axle=knuckles == THREE_KNUCKLES)
             for x, y in MAGNET_CENTRES:
-                magnet = Pos(x, y, .9) * Box(
+                magnet = Pos(x, y, MAGNET_INSTALL_Z) * Box(
                     *MAGNET_SIZE, MAGNET_THICKNESS,
                     align=(Align.CENTER, Align.CENTER, Align.MIN))
                 skin = Pos(x, y, MAGNET_POCKET_DEPTH + .1) * Box(
@@ -129,7 +130,7 @@ class MoneyClipTests(unittest.TestCase):
                     volume = (sum(shape.volume for shape in collision)
                               if isinstance(collision, list) else collision.volume)
                     self.assertGreater(volume, .01)
-                magnet = placement * Pos(x, y, .9) * Box(
+                magnet = placement * Pos(x, y, MAGNET_INSTALL_Z) * Box(
                     *MAGNET_SIZE, MAGNET_THICKNESS,
                     align=(Align.CENTER, Align.CENTER, Align.MIN))
                 overlap = magnet & fitted
@@ -150,6 +151,43 @@ class MoneyClipTests(unittest.TestCase):
                         inset = moving_body_location() * inset
                     self.assertLess(self.overlap_volume(jaw, corner), 1e-6)
                     self.assertAlmostEqual(self.overlap_volume(jaw, inset), inset.volume, places=5)
+
+    def test_thin_cap_face_keeps_full_thickness_rim(self):
+        cap = make_magnet_cap()
+        self.assertAlmostEqual(CAP_FACE_THICKNESS, .4)
+        self.assertAlmostEqual(CAP_SEAT_DEPTH, .8)
+        face = Pos(0, 0, .2) * Box(4, 2, .2)
+        space = Pos(0, 0, .6) * Box(4, 2, .2)
+        rim = Pos(2, 3.2, .6) * Box(.1, .1, .2)
+        self.assertAlmostEqual(self.overlap_volume(cap, face), face.volume, places=5)
+        self.assertLess(self.overlap_volume(cap, space), 1e-6)
+        self.assertAlmostEqual(self.overlap_volume(cap, rim), rim.volume, places=5)
+        edge = Pos(0, 2.45, .37) * Box(.1, .05, .04)
+        self.assertAlmostEqual(self.overlap_volume(cap, edge), edge.volume, places=5)
+
+    def test_backstops_keep_magnets_near_thin_faces(self):
+        cap = make_magnet_cap()
+        jaw = make_jaw(THREE_KNUCKLES, captive_axle=True)
+        loading = magnet_loading_location(True)
+        for x, y in MAGNET_CENTRES:
+            local = Pos(x, y, MAGNET_INSTALL_Z) * Box(
+                *MAGNET_SIZE, MAGNET_THICKNESS,
+                align=(Align.CENTER, Align.CENTER, Align.MIN))
+            self.assertLess(self.overlap_volume(jaw, loading*local), 1e-6)
+            pushed_back = loading * Pos(0, 0, .3) * local
+            self.assertGreater(self.overlap_volume(jaw, pushed_back), .1)
+            pushed_forward = Pos(0, 0, -.2) * local
+            self.assertGreater(self.overlap_volume(Pos(x, y, 0)*cap, pushed_forward), .1)
+
+    def test_retrofit_spacer_prints_as_two_layers(self):
+        spacer = make_magnet_spacer()
+        self.assertTrue(spacer.is_valid)
+        self.assertEqual(len(spacer.solids()), 1)
+        self.assertAlmostEqual(spacer.bounding_box().min.Z, 0, places=5)
+        self.assertAlmostEqual(spacer.bounding_box().size.Z, .4, places=5)
+        for face in spacer.faces():
+            if face.center().Z > .01 and face.normal_at().Z < 0:
+                self.assertLessEqual(-face.normal_at().Z, 2**-.5 + 1e-6)
 
     def test_cap_tabs_have_printable_wall_thickness(self):
         cap = make_magnet_cap()
