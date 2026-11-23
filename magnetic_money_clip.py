@@ -8,7 +8,7 @@ at 90 degrees, ready to join an upright wallet. The hinge axis is horizontal.
 The axle is fused to the three-knuckle jaw; the other jaw rotates around it.
 The jaws close parallel; a second joint in the flat jaw adapts to money thickness.
 Gently free the hinge after cooling. Clearances are starting values for PLA+;
-verify with your printer before relying on the clip. Install twelve 10 x 5 x 2 mm
+verify with your printer before relying on the clip. Install sixteen 10 x 5 x 2 mm
 magnets in two rows per jaw, each with its own small snap cap. Both jaws
 load from their money-facing sides (top of the flat jaw), so
 its outer back stays continuous for wallet mounting. No glue is required.
@@ -23,7 +23,7 @@ import argparse
 from math import radians, cos, tan
 
 # ------- User-adjustable parameters (millimetres) -------
-WIDTH = 28.0
+WIDTH = 37.0
 BODY_START_X = 5.3
 TIP_X = 61.8  # About 1.5 times the previous 41.2 mm reach.
 CORNER_RADIUS = 3.0
@@ -60,7 +60,7 @@ MAGNET_SKIN = 0.6
 MAGNET_POCKET_SIZE = (12.3, 7.3)  # Includes room for the split cap skirt.
 MAGNET_POCKET_DEPTH = PLATE_THICKNESS - MAGNET_SKIN
 MAGNET_ROWS = (27.0, 49.0)
-MAGNET_CENTRES = tuple((x, y) for x in MAGNET_ROWS for y in (-9.0, 0.0, 9.0))
+MAGNET_CENTRES = tuple((x, y) for x in MAGNET_ROWS for y in (-13.5, -4.5, 4.5, 13.5))
 CAP_SEAT_SIZE = (12.9, 7.9)
 CAP_SEAT_DEPTH = 0.8
 CAP_FACE_THICKNESS = 0.4  # Two 0.2 mm layers over the magnet; retain the 0.8 mm rim.
@@ -162,9 +162,21 @@ def cut_magnet_pockets(jaw, *, money_side=False):
     return jaw.fuse(*stops)
 
 
-# 0.35 mm clearance between adjacent knuckle end faces.
-THREE_KNUCKLES = [(-14.0, -9.10), (-2.70, 2.70), (9.10, 14.0)]
-TWO_KNUCKLES   = [(-8.75, -3.05), (3.05, 8.75)]
+# Spread the bearings with the plate width while preserving axial clearance.
+AXIAL_CLEARANCE = 0.35
+OUTER_KNUCKLE_INNER_Y = WIDTH * 9.10/28.0
+CENTRE_KNUCKLE_HALF_WIDTH = WIDTH * 2.70/28.0
+THREE_KNUCKLES = [
+    (-WIDTH/2, -OUTER_KNUCKLE_INNER_Y),
+    (-CENTRE_KNUCKLE_HALF_WIDTH, CENTRE_KNUCKLE_HALF_WIDTH),
+    (OUTER_KNUCKLE_INNER_Y, WIDTH/2),
+]
+TWO_KNUCKLES = [
+    (-OUTER_KNUCKLE_INNER_Y + AXIAL_CLEARANCE,
+     -CENTRE_KNUCKLE_HALF_WIDTH - AXIAL_CLEARANCE),
+    (CENTRE_KNUCKLE_HALF_WIDTH + AXIAL_CLEARANCE,
+     OUTER_KNUCKLE_INNER_Y - AXIAL_CLEARANCE),
+]
 
 
 def upright_root_mask():

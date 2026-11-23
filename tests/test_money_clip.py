@@ -84,7 +84,7 @@ class MoneyClipTests(unittest.TestCase):
         self.assertTrue(jaw.is_valid)
 
     def test_magnet_pockets_keep_opposite_faces_continuous(self):
-        self.assertEqual(len(MAGNET_CENTRES), 6)
+        self.assertEqual(len(MAGNET_CENTRES), 8)
         self.assertEqual((MAGNET_LENGTH, MAGNET_WIDTH, MAGNET_THICKNESS), (10, 5, 2))
         self.assertAlmostEqual(PLATE_THICKNESS - MAGNET_POCKET_DEPTH, MAGNET_SKIN)
         for knuckles in (THREE_KNUCKLES, TWO_KNUCKLES):
@@ -135,8 +135,8 @@ class MoneyClipTests(unittest.TestCase):
                     align=(Align.CENTER, Align.CENTER, Align.MIN))
                 overlap = magnet & fitted
                 self.assertLess(overlap.volume if overlap else 0, 1e-6)
-        self.assertEqual(len(make_caps_print_layout().solids()), 12)
-        self.assertEqual(len(make_closed_assembly().solids()), 15)
+        self.assertEqual(len(make_caps_print_layout().solids()), 16)
+        self.assertEqual(len(make_closed_assembly().solids()), 19)
 
     def test_plate_outer_rims_are_rounded(self):
         self.assertAlmostEqual(PLATE_EDGE_RADIUS, .6)
@@ -222,7 +222,7 @@ class MoneyClipTests(unittest.TestCase):
             self.assertLessEqual(face.normal_at().Z, 2**-.5 + 1e-6)
             self.assertGreater(face.normal_at().Z, .7)
         self.assertEqual(len({x for x, _ in MAGNET_CENTRES}), 2)
-        self.assertEqual(len({y for _, y in MAGNET_CENTRES}), 3)
+        self.assertEqual(len({y for _, y in MAGNET_CENTRES}), 4)
 
     def test_upright_caps_open_toward_money_and_back_is_solid(self):
         jaw = make_jaw(TWO_KNUCKLES)

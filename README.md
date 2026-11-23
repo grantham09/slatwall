@@ -95,7 +95,8 @@ python magnetic_money_clip.py --view --view-state cash
 
 Viewing requires `ocp-vscode` and the VS Code OCP CAD Viewer extension.
 The clip now has a **61.8 mm reach**, about 1.5 times the previous 41.2 mm,
-and **two rows of three 10 × 5 × 2 mm bar magnets per jaw** (12 magnets total).
+and **two rows of four 10 × 5 × 2 mm bar magnets per jaw** (16 magnets total).
+Both plates are now **37 mm wide**, with both hinge spans widened to match.
 The bars are parallel; row centres are at 27 and 49 mm, with 9 mm spacing
 across the width. All pockets load from the money-facing side, including
 from the top of the flat closing plate. The wallet-facing back stays smooth.
@@ -111,7 +112,7 @@ The `cash` viewer state shows a 15-degree root rotation and the opposite
 rotation at the second joint: about **3.0 mm of parallel clearance** for money.
 It is an inspection STEP of the three articulated pieces without caps, not
 a printing orientation. The `closed` state shows the empty assembly with
-all 12 caps installed.
+all 16 caps installed.
 
 Jaw thickness remains **3.6 mm**. The existing stack contains a 2 mm magnet,
 0.6 mm protective back skin, 0.8 mm retaining rim and installation clearance;
@@ -124,12 +125,12 @@ new jaws position magnets 0.4 mm closer to each money-facing surface,
 with 0.1 mm clearance on each side of the magnet. The thinner face needs
 a physical strength check; magnetic pull has not been measured.
 The 10.3 × 5.3 mm skirt interior allows installation clearance. Trial-fit one
-cap before assembling all 12; no glue is required for magnet retention.
+cap before assembling all 16; no glue is required for magnet retention.
 
 Exports into `output/`:
 
 - `money_clip_print_in_place.stl` and `.step`: three captive articulated
-  pieces plus 12 loose caps, all in their printing positions.
+  pieces plus 16 loose caps, all in their printing positions.
 - `money_clip_magnet_cap.stl` and `.step`: one spare cap.
 - `money_clip_magnet_spacer.stl` and `.step`: optional 0.4 mm spacer for old jaws.
 - `money_clip_closed.step`: assembled empty clip with caps installed.
