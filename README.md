@@ -175,3 +175,58 @@ surface: one centred on each long side and one on the free end. Each is
 fingertip or nail purchase between the plates without changing the wallet
 jaw, hinge geometry or magnet pockets. The recess floors retain at least
 2.6 mm of plate thickness.
+
+## Cascade wallet with recessed clip
+
+The supplied `Cascade card wallet V3 - no money clip.stl` is kept unchanged
+at `assets/cascade_card_wallet_v3_no_clip.stl`. The ready-to-print merged
+model is [models/cascade_wallet_with_clip_print.stl](models/cascade_wallet_with_clip_print.stl).
+
+![Closed wallet with recessed clip](docs/cascade_wallet_closed.png)
+
+The clip attaches to the **+Y back face, opposite the card lever**. Its fixed
+plate is fused into the shell, with the old wall cut out of the magnet seats
+and a clearance recess around the primary hinge. The original card-facing
+back-wall boundary at **Y=9.4 mm** is preserved: newly added material does
+not enter the card cavity. The original card-lifting mechanism is retained
+as a separate, unchanged part. The small rear bulge of the clip's root web
+is trimmed flush with that boundary.
+
+The fixed money-facing surface is **1.1 mm beyond the original back**.
+With the empty clip closed, it extends **4.7 mm beyond the original back**;
+the complete closed assembly is approximately **60 × 20.6 × 106.5 mm**.
+The back wall is only 2–2.5 mm thick, so recessing farther with the current
+clip would intrude into the card/mechanism space. About 1,476 mm³ of old
+shell material is removed, primarily from magnet pockets and hinge clearance.
+
+Import the print STL **as one assembly and keep every part's relative
+position**. The wallet stays upright, the moving clip pieces lie flat, and
+16 caps are laid beside it. All 20 connected components start on the bed;
+the footprint is approximately 60 × 196 mm. Do not auto-arrange the wallet
+mechanism or the moving clip parts separately. Preserve the original
+print-in-place gaps; inspect the slicer before printing and avoid support
+material inside the card mechanism, clip hinges, or snap grooves.
+
+To regenerate or test the merge:
+
+```sh
+python -m pip install -r requirements-wallet.txt
+python merge_wallet_clip.py
+python -m unittest discover -s tests -p test_wallet_merge.py -v
+```
+
+This is a measured fit for this exact source STL. The script checks its hash
+and dimensions; a different wallet version requires new measurements.
+The extra mesh dependencies are separate from the standalone CAD requirements.
+Mesh booleans join only the fixed clip to the shell. Micron-scale collapsed
+facets at the fingertip bowl poles are cleaned during STL tessellation;
+no holes are filled and no mechanism geometry is repaired or altered.
+
+Outputs in `output/wallet_merge/` include the print STL, individual component
+STLs, `merge_report.json`, and `cascade_wallet_clip_closed_preview.stl`.
+The closed file is **for inspection only**, not printing: its nominally
+contacting plate and cap faces overlap at zero clearance. The report checks
+that magnet chambers/cap seats are open, that the card mechanism remains
+clear, and that both clip pieces clear the shell at sampled angles, including
+a roughly 3 mm cash configuration. Full physical card-lever actuation,
+print tolerances, magnetic holding force and fatigue still need a print test.

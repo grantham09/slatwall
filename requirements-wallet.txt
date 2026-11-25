@@ -1,0 +1,4 @@
+-r requirements.txt
+ocp_gordon==0.1.17
+trimesh==4.12.2
+manifold3d==3.5.5
