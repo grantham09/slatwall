@@ -15,7 +15,7 @@ its outer back stays continuous for wallet mounting. No glue is required.
 """
 from pathlib import Path
 from build123d import (
-    Align, Axis, Box, Compound, Cylinder, Plane, Polygon, Pos, RectangleRounded, Rot,
+    Align, Axis, Box, Compound, Cylinder, Matrix, Plane, Polygon, Pos, RectangleRounded, Rot, Sphere,
     BuildSketch, BuildLine, Bezier, Polyline, make_face,
     extrude, fillet, loft, export_step, export_stl,
 )
@@ -29,6 +29,9 @@ TIP_X = 61.8  # About 1.5 times the previous 41.2 mm reach.
 CORNER_RADIUS = 3.0
 PLATE_EDGE_RADIUS = 0.6  # Round the outer face rims, not pocket or hinge edges.
 PLATE_THICKNESS = 3.6
+FINGER_RECESS_WIDTH = 9.0
+FINGER_RECESS_REACH = 1.8
+FINGER_RECESS_DEPTH = 1.0
 JAW_ANGLE = 0.0  # Both clamping faces are parallel; the extra joint adapts to cash.
 HINGE_BLEND_RADIUS = 0.9
 BED_LAND_RADIUS = 0.3
@@ -327,6 +330,26 @@ def split_bottom_jaw(jaw):
     return root, closing
 
 
+def finger_recess_cutters():
+    """Smooth bowls centred on the closing plate's three unhinged edges."""
+    middle = (SECOND_PIVOT_X + SECOND_SHOULDER + TIP_X)/2
+    def bowl(rx, ry):
+        return Sphere(1).transform_geometry(Matrix([
+            [rx, 0, 0, 0], [0, ry, 0, 0],
+            [0, 0, FINGER_RECESS_DEPTH, 0], [0, 0, 0, 1],
+        ]))
+    side = bowl(FINGER_RECESS_WIDTH/2, FINGER_RECESS_REACH)
+    end = bowl(FINGER_RECESS_REACH, FINGER_RECESS_WIDTH/2)
+    return [Pos(middle, sign*WIDTH/2, PLATE_THICKNESS)*side for sign in (-1, 1)] + [
+        Pos(TIP_X, 0, PLATE_THICKNESS)*end]
+
+
+def add_finger_recesses(closing):
+    for cutter in finger_recess_cutters():
+        closing = closing - cutter
+    return closing
+
+
 def main_hinge_location(angle):
     return Pos(0, 0, PIVOT_Z) * Rot(0, angle, 0) * Pos(0, 0, -PIVOT_Z)
 
@@ -344,6 +367,7 @@ def make_clip(open_angle=90.0, bottom_angle=0.0):
     the short root link swings around different money thicknesses.
     """
     root, closing = split_bottom_jaw(make_jaw(THREE_KNUCKLES, captive_axle=True))
+    closing = add_finger_recesses(closing)
     closing = bottom_hinge_location(bottom_angle) * closing
     wallet = make_jaw(TWO_KNUCKLES)
     wallet = Pos(0, 0, 2*PIVOT_Z) * Rot(180, 0, 0) * wallet

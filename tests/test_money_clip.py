@@ -12,7 +12,8 @@ from magnetic_money_clip import (
     CAP_FACE_THICKNESS, CAP_SEAT_DEPTH, MAGNET_INSTALL_Z,
     make_magnet_cap, make_caps_print_layout, make_closed_assembly,
     moving_body_location, magnet_loading_location, make_cash_configuration,
-    SECOND_RADIUS, SECOND_BORE_D, SECOND_PIVOT_X, SECOND_PIVOT_Z,
+    SECOND_RADIUS, SECOND_BORE_D, SECOND_PIVOT_X, SECOND_PIVOT_Z, SECOND_SHOULDER,
+    finger_recess_cutters, CAP_SEAT_SIZE, FINGER_RECESS_DEPTH,
 )
 
 
@@ -82,6 +83,24 @@ class MoneyClipTests(unittest.TestCase):
             self.assertLessEqual(-face.normal_at().Z, 2**-.5)
         self.assertEqual(len(jaw.solids()), 1)
         self.assertTrue(jaw.is_valid)
+
+    def test_fingertip_recesses_only_cut_bottom_plate_edges(self):
+        _, closing, wallet = make_clip(0)
+        middle = (SECOND_PIVOT_X + SECOND_SHOULDER + TIP_X)/2
+        centres = [(middle, -WIDTH/2+.6), (middle, WIDTH/2-.6), (TIP_X-.6, 0)]
+        for x, y in centres:
+            opening = Pos(x, y, PLATE_THICKNESS-.3) * Box(.3, .3, .2)
+            floor = Pos(x, y, PLATE_THICKNESS-FINGER_RECESS_DEPTH-.3) * Box(.3, .3, .2)
+            upper = Pos(x, y, PLATE_THICKNESS+.3) * Box(.3, .3, .2)
+            self.assertLess(self.overlap_volume(closing, opening), 1e-6)
+            self.assertAlmostEqual(self.overlap_volume(closing, floor), floor.volume, places=5)
+            self.assertAlmostEqual(self.overlap_volume(wallet, upper), upper.volume, places=5)
+        # The bowls must not cut into any cap seat or magnet chamber.
+        for cutter in finger_recess_cutters():
+            for x, y in MAGNET_CENTRES:
+                cavity = magnet_loading_location(True) * Pos(x, y, 0) * pocket_prism(
+                    CAP_SEAT_SIZE, MAGNET_POCKET_DEPTH)
+                self.assertGreater(cutter.distance_to(cavity), .2)
 
     def test_magnet_pockets_keep_opposite_faces_continuous(self):
         self.assertEqual(len(MAGNET_CENTRES), 8)

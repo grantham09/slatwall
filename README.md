@@ -168,3 +168,10 @@ capture, printable wall thickness, flush seating, and roof slopes.
 Both plates have 0.6 mm rounded outer face rims in addition to their 3 mm
 outline corners. The rims are rounded before pocket cuts and hinge assembly,
 so cap seats, articulation clearances and underside support slopes stay intact.
+
+The bottom closing plate has three shallow fingertip bowls on its money-facing
+surface: one centred on each long side and one on the free end. Each is
+9 mm wide, reaches 1.8 mm inward, and is at most 1 mm deep. They give a
+fingertip or nail purchase between the plates without changing the wallet
+jaw, hinge geometry or magnet pockets. The recess floors retain at least
+2.6 mm of plate thickness.
