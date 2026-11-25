@@ -56,27 +56,26 @@ MAGNET_LENGTH = 10.0  # Along the jaw (X).
 MAGNET_WIDTH = 5.0    # Across the jaw (Y).
 MAGNET_SIZE = (MAGNET_LENGTH, MAGNET_WIDTH)
 MAGNET_THICKNESS = 2.0
-MAGNET_SKIN = 0.6
+MAGNET_SKIN = 1.0  # Flat, uninterrupted pocket floor behind each magnet.
 MAGNET_POCKET_SIZE = (12.3, 7.3)  # Includes room for the split cap skirt.
 MAGNET_POCKET_DEPTH = PLATE_THICKNESS - MAGNET_SKIN
 MAGNET_ROWS = (27.0, 49.0)
 MAGNET_CENTRES = tuple((x, y) for x in MAGNET_ROWS for y in (-13.5, -4.5, 4.5, 13.5))
 CAP_SEAT_SIZE = (12.9, 7.9)
-CAP_SEAT_DEPTH = 0.8
-CAP_FACE_THICKNESS = 0.4  # Two 0.2 mm layers over the magnet; retain the 0.8 mm rim.
+CAP_SEAT_DEPTH = 0.4
+CAP_FACE_THICKNESS = 0.4  # Uniform two-layer cover, including the flange.
 MAGNET_INSTALL_Z = CAP_FACE_THICKNESS + 0.1
-MAGNET_STOP_Z = MAGNET_INSTALL_Z + MAGNET_THICKNESS + 0.1
 CAP_GROOVE_SIZE = (12.7, 7.7)
-CAP_GROOVE_BOTTOM = 2.10
-CAP_GROOVE_TOP = 2.75
+CAP_GROOVE_BOTTOM = 1.70
+CAP_GROOVE_TOP = 2.35
 CAP_FLANGE_SIZE = (12.65, 7.65)
 CAP_TAB_THICKNESS = 0.9
 CAP_SKIRT_SIZE = (12.1, 7.1)
 CAP_SKIRT_INNER_SIZE = (10.3, 5.3)
 CAP_BEAD_SIZE = (12.5, 7.5)
-CAP_SKIRT_TOP = 2.8
-CAP_BEAD_ROOT_Z = 2.0
-CAP_BEAD_PEAK_Z = 2.5
+CAP_SKIRT_TOP = 2.4
+CAP_BEAD_ROOT_Z = 1.6
+CAP_BEAD_PEAK_Z = 2.1
 
 
 def pocket_profile(size):
@@ -98,6 +97,7 @@ def pocket_prism(size, depth):
 def make_magnet_cap():
     """Pointed local snap cap for one 10 x 5 x 2 mm magnet.
 
+    The entire flange is 0.4 mm thick; overall height is 2.4 mm.
     Print flange down, skirt up. The 0.9 mm walls and gradual snap ridge
     avoid thin features and steep cap overhangs. Four open slots split the
     skirt; its bead catches in the matching pointed groove. Physical snap
@@ -129,27 +129,9 @@ def magnet_loading_location(money_side=False):
             if money_side else Pos(0, 0, 0))
 
 
-def make_magnet_spacer():
-    """Optional 0.4 mm retrofit spacer for jaws printed before the thin caps.
-
-    New jaws have these stops fused in. Print spacers small face down; when
-    installing in an old pocket, the larger face rests against the pocket floor.
-    """
-    height = MAGNET_POCKET_DEPTH - MAGNET_STOP_Z
-    return loft([
-        RectangleRounded(MAGNET_LENGTH-2*height, MAGNET_WIDTH-2*height, .3),
-        Pos(0, 0, height) * RectangleRounded(*MAGNET_SIZE, .3+height),
-    ], ruled=True)
-
-
 def cut_magnet_pockets(jaw, *, money_side=False):
     """Cut cap seats and snap grooves while keeping the opposite face solid."""
     loading = magnet_loading_location(money_side)
-    # Advance the magnet toward the thinner cap, keeping 0.1 mm clearance
-    # at each face. A sloped backstop prevents it falling into the old space.
-    # The 45-degree sides preserve the low-support printing intent.
-    stop = Pos(0, 0, MAGNET_STOP_Z) * make_magnet_spacer()
-    stops = []
     for x, y in MAGNET_CENTRES:
         for size, bottom, depth in (
                 (MAGNET_POCKET_SIZE, -.1, MAGNET_POCKET_DEPTH + .1),
@@ -158,8 +140,7 @@ def cut_magnet_pockets(jaw, *, money_side=False):
                  CAP_GROOVE_TOP - CAP_GROOVE_BOTTOM)):
             cutter = Pos(x, y, bottom) * pocket_prism(size, depth)
             jaw = jaw - loading * cutter
-        stops.append(loading * Pos(x, y, 0) * stop)
-    return jaw.fuse(*stops)
+    return jaw
 
 
 # Spread the bearings with the plate width while preserving axial clearance.
@@ -414,8 +395,6 @@ def main():
     export_step(layout, args.output / 'money_clip_print_in_place.step')
     export_stl(make_magnet_cap(), args.output / 'money_clip_magnet_cap.stl')
     export_step(make_magnet_cap(), args.output / 'money_clip_magnet_cap.step')
-    export_stl(make_magnet_spacer(), args.output / 'money_clip_magnet_spacer.stl')
-    export_step(make_magnet_spacer(), args.output / 'money_clip_magnet_spacer.step')
     export_step(make_closed_assembly(),
                 args.output / 'money_clip_closed.step')
     export_step(Compound(children=list(make_cash_configuration(15))),
