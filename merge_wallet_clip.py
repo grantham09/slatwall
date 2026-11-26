@@ -14,7 +14,7 @@ from tempfile import TemporaryDirectory
 import manifold3d as mf
 import numpy as np
 import trimesh
-from build123d import Align, Box, Compound, Pos, Rot, export_stl
+from build123d import Align, Box, Compound, Pos, Rot, export_stl, import_stl
 
 import magnetic_money_clip as clip
 
@@ -289,13 +289,30 @@ def build(wallet_path, output):
         return report
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--wallet', type=Path,
                         default=Path(__file__).parent/'assets/cascade_card_wallet_v3_no_clip.stl')
     parser.add_argument('--output', type=Path, default=Path('output/wallet_merge'))
-    args = parser.parse_args()
+    parser.add_argument('--view', action='store_true',
+                        help='Show the exported STL in VS Code OCP CAD Viewer (requires ocp-vscode)')
+    parser.add_argument('--view-state', choices=('print', 'closed'), default='print',
+                        help='Assembly to display with --view (default: print)')
+    args = parser.parse_args(argv)
     build(args.wallet, args.output)
+    if args.view:
+        try:
+            from ocp_vscode import show
+        except ImportError:
+            parser.exit(1, 'Exports saved. Viewing requires ocp-vscode and the VS Code '
+                        'OCP CAD Viewer extension. Install the bridge with: '
+                        'python -m pip install ocp-vscode\n')
+        filename = ('cascade_wallet_clip_closed_preview.stl' if args.view_state == 'closed'
+                    else 'cascade_wallet_with_clip_print.stl')
+        # STL reference import preserves the exported mesh and avoids creating
+        # an editable CAD face for every triangle of the wallet.
+        reference = import_stl(args.output/filename)
+        show(reference, names=[f'Cascade wallet + money clip — {args.view_state}'])
 
 
 if __name__ == '__main__':

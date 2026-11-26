@@ -227,8 +227,16 @@ To regenerate or test the merge:
 ```sh
 python -m pip install -r requirements-wallet.txt
 python merge_wallet_clip.py
+python merge_wallet_clip.py --view
+python merge_wallet_clip.py --view --view-state closed
 python -m unittest discover -s tests -p test_wallet_merge.py -v
 ```
+
+Viewing requires `ocp-vscode` (`python -m pip install ocp-vscode`) and the
+VS Code OCP CAD Viewer extension. `--view` rebuilds and displays the exported
+print STL; `--view --view-state closed` displays the closed inspection STL.
+The viewer loads a mesh reference, so it shows the actual exported result
+without converting every triangle to an editable CAD face.
 
 This is a measured fit for this exact source STL. The script checks its hash
 and dimensions; a different wallet version requires new measurements.

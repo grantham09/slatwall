@@ -3,11 +3,14 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 import unittest
+from unittest.mock import Mock, patch
 
 try:
     import numpy as np
     import trimesh
+    import merge_wallet_clip
     from merge_wallet_clip import build, CARD_BACK_Y
     import magnetic_money_clip as clip
 except ImportError:
@@ -94,6 +97,27 @@ class WalletMergeTests(unittest.TestCase):
                 original_y = self.back_surface_y(shell, x, z)
                 merged_y = self.back_surface_y(merged, x, z)
                 self.assertAlmostEqual(merged_y, original_y, delta=.01)
+
+    def test_view_option_loads_the_selected_exported_mesh(self):
+        for state, bounds_key in (('print', 'print_bounds_mm'), ('closed', 'closed_bounds_mm')):
+            with self.subTest(state=state):
+                show = Mock()
+                with patch.dict('sys.modules', {'ocp_vscode': SimpleNamespace(show=show)}), \
+                     patch.object(merge_wallet_clip, 'build', return_value=self.report) as rebuild:
+                    merge_wallet_clip.main(['--output', str(self.output), '--view',
+                                            '--view-state', state])
+                rebuild.assert_called_once()
+                show.assert_called_once()
+                reference = show.call_args.args[0]
+                bounds = reference.bounding_box()
+                np.testing.assert_allclose([tuple(bounds.min), tuple(bounds.max)],
+                                           self.report[bounds_key], atol=.01)
+
+    def test_export_does_not_require_viewer_bridge(self):
+        with patch.dict('sys.modules', {'ocp_vscode': None}), \
+             patch.object(merge_wallet_clip, 'build', return_value=self.report) as rebuild:
+            merge_wallet_clip.main(['--output', str(self.output)])
+        rebuild.assert_called_once()
 
 
 if __name__ == '__main__':
