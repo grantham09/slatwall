@@ -195,6 +195,21 @@ is trimmed flush with that boundary.
 The fixed money-facing surface is **1.1 mm beyond the original back**.
 With the empty clip closed, it extends **4.7 mm beyond the original back**;
 the complete closed assembly is approximately **60 × 20.6 × 106.5 mm**.
+The fixed plate's two side rims and top rim now curve down into the original
+wallet wall, so those outer edges meet the wall surface. Only the perimeter
+is thinned: the magnet seats, cap collars and both hinges retain their
+previous geometry. The moving plate is unchanged. Magnet regions remain
+about 1.1–1.6 mm proud of the surrounding back, depending on the original
+ribs; this does not make the entire fixed plate face flush. The empty closed
+clip's maximum protrusion is still 4.7 mm.
+
+The side blends occupy up to 0.7 mm of the rim and the top blend up to
+1.5 mm. These widths shrink automatically if needed to preserve at least
+0.35 mm of full-height material outside the cap-seat outlines. The existing
+wallet wall supports the blends. Deeper recessing at the magnet areas would
+require thinner pocket floors or thinner magnets.
+
+![Actual side-edge section before and after blending](docs/wallet_edge_blend_section.png)
 The back wall is only 2–2.5 mm thick, so recessing farther with the current
 clip would intrude into the card/mechanism space. About 1,476 mm³ of old
 shell material is removed, primarily from magnet pockets and hinge clearance.
@@ -230,3 +245,6 @@ that magnet chambers/cap seats are open, that the card mechanism remains
 clear, and that both clip pieces clear the shell at sampled angles, including
 a roughly 3 mm cash configuration. Full physical card-lever actuation,
 print tolerances, magnetic holding force and fatigue still need a print test.
+
+The card-space trim uses a true plane at Y=9.4 mm, without an oversized
+cutting box. The merger remains a measured fit for the supplied wallet STL.

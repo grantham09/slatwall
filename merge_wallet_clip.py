@@ -22,6 +22,10 @@ import magnetic_money_clip as clip
 CARD_BACK_Y = 9.4
 CLIP_FACE_Y = CARD_BACK_Y + clip.PLATE_THICKNESS
 JOINT_CLEARANCE = 0.35
+BACK_WALL_BASE_Y = 11.4  # Outer surface between the supplied wallet's raised ribs.
+MAX_SIDE_BLEND = 0.7
+MAX_TOP_BLEND = 1.5
+CAP_COLLAR_MARGIN = 0.35
 SOURCE_SHA256 = 'cfcf29feb4395c374c6b497182334f99aaa6731955c9d74af330ce7121bf32c2'
 # Rotate the clip's X extrusion direction toward the wallet's +Y face.
 MOUNT_ROTATION = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]], dtype=float)
@@ -91,6 +95,52 @@ def pocket_cutters():
     return Compound(children=cutters)
 
 
+def blend_fixed_perimeter(solid, fixed_bounds, pocket_bounds):
+    """Taper only exposed plate rims into the existing wallet back.
+
+    Widths are limited by the actual seat bounds, preserving a full-height
+    collar around every cap. The original shell is joined afterwards and
+    supplies its unchanged wall/rib surface at the outside of the blends.
+    """
+    rise = CLIP_FACE_Y - BACK_WALL_BASE_Y
+    widths = {}
+
+    def profile(edge, width, sign=1):
+        # Smoothstep is tangent to the plate face and the base wall level.
+        # Linear facets approximate the curve to well below STL tolerance.
+        points = [(edge-sign*width, CLIP_FACE_Y+1),
+                  (edge+sign, CLIP_FACE_Y+1), (edge+sign, BACK_WALL_BASE_Y)]
+        for t in np.linspace(0, 1, 65):
+            y = BACK_WALL_BASE_Y + rise*t*t*(3-2*t)
+            points.append((edge-sign*width*t, y))
+        points = np.asarray(points)
+        area = np.sum(points[:, 0]*np.roll(points[:, 1], -1)
+                      - np.roll(points[:, 0], -1)*points[:, 1])
+        if area < 0:
+            points = points[::-1]
+        return mf.CrossSection([points])
+
+    for sign, index, name in ((-1, 0, 'left'), (1, 1, 'right')):
+        edge = fixed_bounds[index, 0]
+        free_rim = sign*(edge-pocket_bounds[index, 0])
+        width = min(MAX_SIDE_BLEND, max(0, free_rim-CAP_COLLAR_MARGIN))
+        widths[name] = float(width)
+        if width > 1e-5 and rise > 0:
+            cutter = profile(edge, width, sign).extrude(
+                fixed_bounds[1, 2]-fixed_bounds[0, 2]+2).translate(
+                    (0, 0, fixed_bounds[0, 2]-1))
+            solid = solid-cutter
+    width = min(MAX_TOP_BLEND,
+                max(0, fixed_bounds[1, 2]-pocket_bounds[1, 2]-CAP_COLLAR_MARGIN))
+    widths['top'] = float(width)
+    if width > 1e-5 and rise > 0:
+        cutter = profile(fixed_bounds[1, 2], width).extrude(
+            fixed_bounds[1, 0]-fixed_bounds[0, 0]+2).rotate((0, -90, 0)).translate(
+                (fixed_bounds[1, 0]+1, 0, 0))
+        solid = solid-cutter
+    return solid, widths
+
+
 def build(wallet_path, output):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
@@ -116,8 +166,8 @@ def build(wallet_path, output):
 
         # Trim only the root web's tiny rear bulge: no new geometry may enter
         # the original card/mechanism space in front of the back-wall plane.
-        behind_card_plane = mf.Manifold.cube((200, 100, 160)).translate((-100, CARD_BACK_Y, -10))
-        fixed_solid = as_manifold(fixed) ^ behind_card_plane
+        fixed_solid = as_manifold(fixed).trim_by_plane((0, 1, 0), CARD_BACK_Y)
+        fixed_solid, edge_blends = blend_fixed_perimeter(fixed_solid, fixed.bounds, voids.bounds)
         # Remove old wall material from the magnet seats before uniting the
         # plate, otherwise the overlapping wallet wall would refill the holes.
         shell_solid = as_manifold(shell)
@@ -223,6 +273,8 @@ def build(wallet_path, output):
             'input_components': len(parts), 'print_components': len(pieces),
             'mount_side': '+Y, opposite the lever', 'card_cavity_back_y_mm': CARD_BACK_Y,
             'clip_money_face_y_mm': CLIP_FACE_Y,
+            'fixed_plate_edge_blend_widths_mm': edge_blends,
+            'full_height_cap_collar_mm': CAP_COLLAR_MARGIN,
             'fixed_face_protrusion_past_original_back_mm': CLIP_FACE_Y-shell.bounds[1, 1],
             'closed_protrusion_past_original_back_mm': preview.bounds[1, 1]-shell.bounds[1, 1],
             'closed_bounds_mm': preview.bounds.tolist(), 'print_bounds_mm': combined.bounds.tolist(),
