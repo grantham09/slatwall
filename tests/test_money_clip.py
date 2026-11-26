@@ -43,6 +43,21 @@ class MoneyClipTests(unittest.TestCase):
             for a, b in combinations(parts, 2):
                 self.assertLess(self.overlap_volume(a, b), 1e-6)
 
+    def test_hinge_end_rims_are_rounded_and_pad_lips_are_removed(self):
+        root, _, _ = make_clip(90)
+        for sign in (-1, 1):
+            for x, z in ((-3.55, PLATE_THICKNESS),
+                         (SECOND_PIVOT_X+SECOND_RADIUS-.03, SECOND_PIVOT_Z)):
+                edge = Pos(x, sign*(WIDTH/2-.02), z) * Box(.02, .01, .02)
+                barrel = Pos(x, sign*(WIDTH/2-.7), z) * Box(.02, .01, .02)
+                self.assertLess(self.overlap_volume(root, edge), 1e-6)
+                self.assertAlmostEqual(self.overlap_volume(root, barrel), barrel.volume, places=7)
+        for x, z in ((-3.2, .7), (SECOND_PIVOT_X+1.38, .55)):
+            old_lip = Pos(x, 0, z)*Box(.02, .1, .02)
+            self.assertLess(self.overlap_volume(root, old_lip), 1e-6)
+        bed_land = Pos(-1, 0, .2)*Box(.3, 1, .2)
+        self.assertAlmostEqual(self.overlap_volume(root, bed_land), bed_land.volume, places=6)
+
     def test_two_joints_hold_closing_plate_parallel_over_cash(self):
         for angle in (5, 15, 25):
             root, closing, wallet = make_cash_configuration(angle)

@@ -15,12 +15,12 @@ its outer back stays continuous for wallet mounting. No glue is required.
 """
 from pathlib import Path
 from build123d import (
-    Align, Axis, Box, Compound, Cylinder, Matrix, Plane, Polygon, Pos, RectangleRounded, Rot, Sphere,
+    Align, Axis, Box, Compound, Cylinder, GeomType, Matrix, Plane, Polygon, Pos, RectangleRounded, Rot, Sphere,
     BuildSketch, BuildLine, Bezier, Polyline, make_face,
     extrude, fillet, loft, export_step, export_stl,
 )
 import argparse
-from math import radians, cos, tan
+from math import radians, cos, tan, sqrt
 
 # ------- User-adjustable parameters (millimetres) -------
 WIDTH = 37.0
@@ -42,6 +42,9 @@ UPRIGHT_ROOT_RISE = 1.1  # Rise/run across the upright jaw width.
 PIVOT_X = 0.0
 PIVOT_Z = PLATE_THICKNESS
 KNUCKLE_RADIUS = PLATE_THICKNESS  # Flat jaw and upright curved land remain on the bed
+HINGE_END_RADIUS = 0.3
+PRIMARY_LAND_HEIGHT = KNUCKLE_RADIUS/3
+PRIMARY_LAND_HALF_WIDTH = KNUCKLE_RADIUS*sqrt(5)/3
 AXLE_D = 2.4
 RADIAL_CLEARANCE = 0.30
 PIN_HOLE_D = AXLE_D + 2 * RADIAL_CLEARANCE
@@ -51,6 +54,9 @@ PIN_HOLE_D = AXLE_D + 2 * RADIAL_CLEARANCE
 SECOND_PIVOT_X = 12.0
 SECOND_PIVOT_Z = PLATE_THICKNESS/2
 SECOND_RADIUS = 1.8
+SECOND_END_RADIUS = 0.2
+SECOND_LAND_HEIGHT = SECOND_RADIUS/3
+SECOND_LAND_HALF_WIDTH = SECOND_RADIUS*sqrt(5)/3
 SECOND_AXLE_D = 1.2
 SECOND_BORE_D = SECOND_AXLE_D + 2*RADIAL_CLEARANCE
 SECOND_SHOULDER = SECOND_RADIUS + .4
@@ -203,10 +209,21 @@ def round_hinge_transitions(jaw, captive_axle):
     if captive_axle:
         blend(lambda p: abs(p.X - KNUCKLE_RADIUS) < 1e-5
               and abs(p.Z - PIVOT_Z) < 1e-5, HINGE_BLEND_RADIUS)
-        blend(lambda p: abs(p.X + (PLATE_THICKNESS - 0.2)) < 1e-5
-              and p.Z < 0.9, BED_LAND_RADIUS)
+        blend(lambda p: abs(p.X + PRIMARY_LAND_HALF_WIDTH) < 1e-5
+              and p.Z < PRIMARY_LAND_HEIGHT+.01, BED_LAND_RADIUS)
     # The moving underside is already a smooth Bezier down to its flat base.
     return jaw
+
+
+def round_barrel_ends(piece, barrel_radius, end_radius):
+    """Round only the outer circular end rims; keep bores and end positions."""
+    edges = [edge for edge in piece.edges()
+             if edge.geom_type == GeomType.CIRCLE
+             and abs(edge.radius-barrel_radius) < 1e-6
+             and edge.bounding_box().size.Y < 1e-6]
+    if not edges:
+        raise ValueError('Expected outer barrel end rims were not found')
+    return fillet(edges, end_radius)
 
 
 def make_jaw(knuckles, *, captive_axle=False):
@@ -273,7 +290,7 @@ def make_jaw(knuckles, *, captive_axle=False):
 
         # A flat land on the back of the jaw.
         foot = Pos(0.0, middle, 0) * Box(
-            2 * (PLATE_THICKNESS - 0.2), segment_width, 0.85,
+            2*PRIMARY_LAND_HALF_WIDTH, segment_width, PRIMARY_LAND_HEIGHT,
             align=(Align.CENTER, Align.CENTER, Align.MIN),
         )
         if captive_axle:
@@ -296,7 +313,8 @@ def make_jaw(knuckles, *, captive_axle=False):
     else:
         jaw = jaw - pin_hole
 
-    return round_hinge_transitions(jaw, captive_axle)
+    jaw = round_hinge_transitions(jaw, captive_axle)
+    return round_barrel_ends(jaw, KNUCKLE_RADIUS, HINGE_END_RADIUS)
 
 
 def split_bottom_jaw(jaw):
@@ -317,16 +335,17 @@ def split_bottom_jaw(jaw):
                 abs(end-SECOND_PIVOT_X), width, PLATE_THICKNESS,
                 align=(Align.CENTER, Align.CENTER, Align.MIN))
             land = Pos(SECOND_PIVOT_X, middle, 0) * Box(
-                2.8, width, .6, align=(Align.CENTER, Align.CENTER, Align.MIN))
+                2*SECOND_LAND_HALF_WIDTH, width, SECOND_LAND_HEIGHT,
+                align=(Align.CENTER, Align.CENTER, Align.MIN))
             piece = piece.fuse(barrel, web, land)
         pin = Pos(SECOND_PIVOT_X, 0, SECOND_PIVOT_Z) * Rot(90, 0, 0) * Cylinder(
             (SECOND_AXLE_D if is_root else SECOND_BORE_D)/2,
             WIDTH if is_root else WIDTH+2,
             align=(Align.CENTER, Align.CENTER, Align.CENTER))
         if is_root:
-            root = piece.fuse(pin)
+            root = round_barrel_ends(piece.fuse(pin), SECOND_RADIUS, SECOND_END_RADIUS)
         else:
-            closing = piece - pin
+            closing = round_barrel_ends(piece-pin, SECOND_RADIUS, SECOND_END_RADIUS)
     return root, closing
 
 

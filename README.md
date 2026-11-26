@@ -248,3 +248,13 @@ print tolerances, magnetic holding force and fatigue still need a print test.
 
 The card-space trim uses a true plane at Y=9.4 mm, without an oversized
 cutting box. The merger remains a measured fit for the supplied wallet STL.
+
+The primary hinge barrel end rims have **0.3 mm roundovers**, and the small
+second hinge has **0.2 mm roundovers**. The bore diameters, printed pins and
+axial face positions stay unchanged. The main bearing spans retain their
+original wall thickness; the end rims have a short rounded lead-in.
+Printing pads now meet the barrel curves at one-third of their radius height,
+removing the previous projecting lips while retaining a flat bed-contact
+land. Their widths follow the barrel radii rather than protruding beyond them.
+
+![Hinge ends before and after rounding](docs/hinge_end_rounding.png)
